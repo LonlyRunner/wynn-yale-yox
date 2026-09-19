@@ -11,6 +11,47 @@ const mobileOpen = ref(false), catTalk = ref(false), busy = ref(false), notice =
 const text = (zh: string, en: string) => lang.value === 'zh' ? zh : en
 const toggleLang = () => { lang.value = lang.value === 'zh' ? 'en' : 'zh'; localStorage.setItem('wynn-lang', lang.value) }
 const catHello = () => { catTalk.value = true; setTimeout(() => catTalk.value = false, 1800) }
+const catOffsets = ref<Record<string, { x: number; y: number }>>({})
+const catDragging = ref(false), catDragged = ref(false)
+const catKey = computed(() => String(route.name || 'cat'))
+const catStyle = computed(() => {
+  const { x = 0, y = 0 } = catOffsets.value[catKey.value] || {}
+  return { transform: `translate3d(${x}px, ${y}px, 0)` }
+})
+let catDrag: { pointerId: number; x: number; y: number; offsetX: number; offsetY: number; rect: DOMRect; bounds: DOMRect } | undefined
+function startCatDrag(event: PointerEvent) {
+  if (event.button !== 0) return
+  const target = event.currentTarget as HTMLElement
+  const offset = catOffsets.value[catKey.value] || { x: 0, y: 0 }
+  const bounds = (target.closest('.hero, .about') as HTMLElement || document.documentElement).getBoundingClientRect()
+  catDrag = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, offsetX: offset.x, offsetY: offset.y, rect: target.getBoundingClientRect(), bounds }
+  catDragging.value = true
+  catDragged.value = false
+  target.setPointerCapture(event.pointerId)
+}
+function moveCat(event: PointerEvent) {
+  if (!catDrag || event.pointerId !== catDrag.pointerId) return
+  const dx = event.clientX - catDrag.x, dy = event.clientY - catDrag.y
+  if (Math.hypot(dx, dy) > 4) catDragged.value = true
+  const edge = 8
+  const minX = Math.max(edge, catDrag.bounds.left + edge) - catDrag.rect.left
+  const maxX = Math.min(innerWidth - edge, catDrag.bounds.right - edge) - catDrag.rect.right
+  const minY = Math.max(edge, catDrag.bounds.top + edge) - catDrag.rect.top
+  const maxY = Math.min(innerHeight - edge, catDrag.bounds.bottom - edge) - catDrag.rect.bottom
+  catOffsets.value[catKey.value] = {
+    x: catDrag.offsetX + Math.min(Math.max(dx, minX), maxX),
+    y: catDrag.offsetY + Math.min(Math.max(dy, minY), maxY),
+  }
+}
+function endCatDrag(event: PointerEvent) {
+  if (!catDrag || event.pointerId !== catDrag.pointerId) return
+  catDrag = undefined
+  catDragging.value = false
+}
+function catClick() {
+  if (catDragged.value) { catDragged.value = false; return }
+  catHello()
+}
 const posts = [
   { slug:'reliable-agent', tag:'AI ENGINEERING', zh:'从一次对话到一个可靠的 Agent', en:'From a Conversation to a Reliable Agent', date:'2026.06.04' },
   { slug:'model-routing', tag:'SPRING AI', zh:'多模型路由的简单实现', en:'A Simple Multi-model Router', date:'2026.05.26' },
@@ -42,7 +83,7 @@ watch(()=>route.fullPath,()=>{mobileOpen.value=false;notice.value='';playing.val
 <main :class="['site',{dark}]">
   <header v-if="route.name!=='admin'" class="topbar"><RouterLink class="brand" to="/"><img src="/media/wynn-mark.png"><span>WYNN YALE YOX</span></RouterLink><nav :class="{open:mobileOpen}"><RouterLink to="/">{{text('首页','Home')}}</RouterLink><RouterLink to="/blog">{{text('博客','Blog')}}</RouterLink><RouterLink to="/gallery">{{text('影像','Gallery')}}</RouterLink><RouterLink to="/studio">{{text('AI 创作','AI Studio')}}</RouterLink><RouterLink to="/games">{{text('游戏','Games')}}</RouterLink><RouterLink to="/about">{{text('关于','About')}}</RouterLink></nav><div class="nav-actions"><button class="pill" @click="toggleLang">{{lang==='zh'?'中 / EN':'EN / 中'}}</button><button class="menu" @click="mobileOpen=!mobileOpen">☰</button></div></header>
 
-  <section v-if="route.name==='home'" class="hero"><video autoplay muted loop playsinline poster="/media/hero.jpg"><source src="/media/hero.mp4" type="video/mp4"></video><div class="shade"></div><div class="hero-copy"><small>PERSONAL DIGITAL GARDEN · 2026</small><h1>Wynn<br>Yale Yox</h1><i></i><p>{{text('随性而行，无拘无定。','Move freely, remain undefined.')}}</p></div><button class="cat home-cat" @click="catHello"><img src="/media/fluffy-kitten.png"></button><span v-if="catTalk" class="bubble">{{text('喵～欢迎回来 ✦','Meow — welcome back ✦')}}</span><span class="scroll">—　{{text('向下探索','Explore')}}</span></section>
+  <section v-if="route.name==='home'" class="hero"><video autoplay muted loop playsinline poster="/media/hero.jpg"><source src="/media/hero.mp4" type="video/mp4"></video><div class="shade"></div><div class="hero-copy"><small>PERSONAL DIGITAL GARDEN · 2026</small><h1>Wynn<br>Yale Yox</h1><i></i><p>{{text('随性而行，无拘无定。','Move freely, remain undefined.')}}</p></div><button :class="['cat home-cat',{dragging:catDragging}]" :style="catStyle" :aria-label="text('拖动小猫','Drag kitten')" @pointerdown="startCatDrag" @pointermove="moveCat" @pointerup="endCatDrag" @pointercancel="endCatDrag" @click="catClick"><img src="/media/fluffy-kitten.png" draggable="false"></button><span v-if="catTalk" class="bubble" :style="catStyle">{{text('喵～欢迎回来 ✦','Meow — welcome back ✦')}}</span><span class="scroll">—　{{text('向下探索','Explore')}}</span></section>
 
   <template v-else-if="route.name==='blog'"><section class="page-head"><small>NOTES & EXPERIMENTS</small><h1>{{text('技术与思考','Technology & Thoughts')}}</h1><p>{{text('记录 Java、AI 工程与产品实践，也记录那些仍在形成中的判断。','Notes on Java, AI engineering, products, and ideas still taking shape.')}}</p></section><section class="blog-grid"><RouterLink class="feature" :to="`/blog/${posts[0].slug}`"><div><small>{{posts[0].tag}}</small><h2>{{text(posts[0].zh,posts[0].en)}}</h2><span>{{posts[0].date}} · 12 MIN</span></div></RouterLink><div class="post-list"><RouterLink v-for="(post,i) in posts.slice(1)" :key="post.slug" class="post" :to="`/blog/${post.slug}`"><div><small>{{post.tag}}</small><h2>{{text(post.zh,post.en)}}</h2><span>{{post.date}}</span></div><b>0{{i+1}}</b></RouterLink></div></section></template>
 
@@ -52,7 +93,7 @@ watch(()=>route.fullPath,()=>{mobileOpen.value=false;notice.value='';playing.val
 
   <section v-else-if="route.name==='studio'" class="studio"><aside><b>● {{text('仅本人可用','Owner only')}}</b><span class="on">✦ {{text('图片生成','Image')}}</span><span>▶ {{text('视频生成','Video')}}</span><span>{{text('生成历史','History')}}</span><span>{{text('服务商配置','Providers')}}</span></aside><div class="studio-main"><small>PRIVATE AI STUDIO</small><h1>{{text('把想法变成画面','Turn ideas into images')}}</h1><div class="providers"><button v-for="p in ['qwen','deepseek','relay']" :class="{on:provider===p}" @click="provider=p">{{p}}</button></div><div class="prompt"><textarea v-model="prompt"></textarea><footer><span>16:9 · HD · Realistic</span><button @click="generate" :disabled="busy">{{busy?text('生成中…','Generating…'):text('开始生成 ↗','Generate ↗')}}</button></footer></div><div class="result"><img src="/media/fluffy-kitten.png"><p>{{notice||text('生成结果将在这里出现','Your result will appear here')}}</p><small>{{text('完成后自动保存至 OSS','Saved to OSS when complete')}}</small></div></div></section>
 
-  <section v-else-if="route.name==='about'" class="about"><div class="portrait">WY<span>PORTRAIT PLACEHOLDER</span></div><div class="about-copy"><small>ABOUT ME</small><img class="signature" src="/media/wynn-signature.png"><h1>{{text('在代码与生活之间，保留自由生长的空间。','Keep room to grow between code and life.')}}</h1><p>{{text('全栈开发者，关注 Java、Spring、AI 应用与真实产品的落地。','Full-stack developer focused on Java, Spring, applied AI, and products that reach real users.')}}</p><dl><div><dt>{{text('城市','City')}}</dt><dd>{{text('待补充','Coming soon')}}</dd></div><div><dt>{{text('邮箱','Email')}}</dt><dd>hello@example.com</dd></div><div><dt>{{text('代码','Code')}}</dt><dd>GitHub · Gitee ↗</dd></div><div><dt>{{text('更多','More')}}</dt><dd>{{text('闲鱼 · 微信','Xianyu · WeChat')}} ↗</dd></div></dl><button class="cat about-cat" @click="catHello"><img src="/media/fluffy-kitten.png"></button></div></section>
+  <section v-else-if="route.name==='about'" class="about"><div class="portrait">WY<span>PORTRAIT PLACEHOLDER</span></div><div class="about-copy"><small>ABOUT ME</small><img class="signature" src="/media/wynn-signature.png"><h1>{{text('在代码与生活之间，保留自由生长的空间。','Keep room to grow between code and life.')}}</h1><p>{{text('全栈开发者，关注 Java、Spring、AI 应用与真实产品的落地。','Full-stack developer focused on Java, Spring, applied AI, and products that reach real users.')}}</p><dl><div><dt>{{text('城市','City')}}</dt><dd>{{text('待补充','Coming soon')}}</dd></div><div><dt>{{text('邮箱','Email')}}</dt><dd>hello@example.com</dd></div><div><dt>{{text('代码','Code')}}</dt><dd>GitHub · Gitee ↗</dd></div><div><dt>{{text('更多','More')}}</dt><dd>{{text('闲鱼 · 微信','Xianyu · WeChat')}} ↗</dd></div></dl><button :class="['cat about-cat',{dragging:catDragging}]" :style="catStyle" :aria-label="text('拖动小猫','Drag kitten')" @pointerdown="startCatDrag" @pointermove="moveCat" @pointerup="endCatDrag" @pointercancel="endCatDrag" @click="catClick"><img src="/media/fluffy-kitten.png" draggable="false"></button></div></section>
 
   <template v-else-if="route.name==='games'"><section class="page-head"><small>SMALL WORLDS</small><h1>{{text('玩一会儿','Play for a while')}}</h1><p>{{text('三个轻量小游戏，随时开始，也随时离开。','Three small games. Start and leave whenever you like.')}}</p></section><section class="game-grid"><RouterLink v-for="game in games" :key="game.id" :to="`/games/${game.id}`" class="game-card"><b>{{game.no}}</b><strong>{{game.icon}}</strong><small>{{game.id}}</small><h2>{{text(game.zh,game.en)}}</h2><p>{{text(game.dzh,game.den)}}</p><span>{{text('开始游戏','Play')}} →</span></RouterLink></section></template>
 
@@ -64,3 +105,15 @@ watch(()=>route.fullPath,()=>{mobileOpen.value=false;notice.value='';playing.val
   <div v-if="catTalk" class="toast">{{text('喵～今天也要做点喜欢的事 ✦','Meow — make something you love today ✦')}}</div>
 </main>
 </template>
+
+<style scoped>
+.cat {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  will-change: transform;
+}
+.cat.dragging { cursor: grabbing; }
+.cat img { pointer-events: none; }
+.bubble { pointer-events: none; }
+</style>
