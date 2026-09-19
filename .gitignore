@@ -1,0 +1,13 @@
+.env
+.idea/
+.vscode/
+frontend/node_modules/
+frontend/dist/
+backend/target/
+backend/data/
+*.log
+desktop-preview.png
+mobile-preview.png
+desktop-games.png
+mobile-games.png
+frontend/src/assets/hero.png

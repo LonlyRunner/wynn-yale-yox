@@ -1,0 +1,39 @@
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    command: --innodb-buffer-pool-size=256M --max-connections=40
+    volumes: [mysql-data:/var/lib/mysql]
+    healthcheck: { test: ["CMD","mysqladmin","ping","-h","localhost"], interval: 10s, timeout: 5s, retries: 10 }
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on: { mysql: { condition: service_healthy } }
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+      DB_USERNAME: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      ADMIN_USERNAME: ${ADMIN_USERNAME}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      OSS_ENDPOINT: ${OSS_ENDPOINT}
+      OSS_BUCKET: ${OSS_BUCKET}
+      OSS_ACCESS_KEY_ID: ${OSS_ACCESS_KEY_ID}
+      OSS_ACCESS_KEY_SECRET: ${OSS_ACCESS_KEY_SECRET}
+      QWEN_API_KEY: ${QWEN_API_KEY}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
+      RELAY_BASE_URL: ${RELAY_BASE_URL}
+      RELAY_API_KEY: ${RELAY_API_KEY}
+    deploy: { resources: { limits: { memory: 700M } } }
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on: [backend]
+    ports: ["80:80"]
+    deploy: { resources: { limits: { memory: 96M } } }
+volumes:
+  mysql-data:
