@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { api } from './api'
+import { api, ApiError } from './api'
 
 type Lang = 'zh' | 'en'
 const route = useRoute(), router = useRouter()
@@ -72,7 +72,7 @@ const posts = [
 const provider = ref('qwen'), prompt = ref('薄雾笼罩的火山山脊，第一视角低空掠过，电影感，冷色调，自然光。')
 async function generate() { busy.value=true;notice.value='';try{const r=await api<{status:string}>('/admin/ai/jobs',{method:'POST',body:JSON.stringify({provider:provider.value,type:'IMAGE',prompt:prompt.value})});notice.value=r.status}catch(e){notice.value=e instanceof Error?e.message:'Request failed'}finally{busy.value=false} }
 const username=ref('wynn'), password=ref('')
-async function login(){busy.value=true;notice.value='';try{await api('/auth/login',{method:'POST',body:JSON.stringify({username:username.value,password:password.value})});sessionStorage.setItem('wynn-auth','1');router.push(String(route.query.redirect||'/admin'))}catch{notice.value=text('账号或密码错误','Invalid credentials')}finally{busy.value=false}}
+async function login(){busy.value=true;notice.value='';try{await api('/auth/login',{method:'POST',body:JSON.stringify({username:username.value,password:password.value})});sessionStorage.setItem('wynn-auth','1');router.push(String(route.query.redirect||'/admin'))}catch(error){notice.value=error instanceof ApiError&&error.status===0?text('登录服务未启动，请先启动后端','Login service is unavailable. Start the backend first.'):error instanceof ApiError&&(error.status===401||error.status===403)?text('账号或密码错误','Invalid credentials'):text('登录失败，请稍后重试','Sign-in failed. Try again shortly.')}finally{busy.value=false}}
 async function logout(){try{await api('/auth/logout',{method:'POST'})}catch{}sessionStorage.removeItem('wynn-auth');router.push('/')}
 
 const games=[

@@ -8,8 +8,10 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.bind.annotation.*;
@@ -22,6 +24,7 @@ class AuthController {
     private final AuthenticationManager manager;
     AuthController(AuthenticationManager manager){this.manager=manager;}
     @PostMapping("/login") Map<String,Object> login(@Valid @RequestBody LoginRequest body,HttpServletRequest request){Authentication auth=manager.authenticate(new UsernamePasswordAuthenticationToken(body.username(),body.password()));var context=SecurityContextHolder.createEmptyContext();context.setAuthentication(auth);SecurityContextHolder.setContext(context);request.getSession(true).setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,context);return Map.of("authenticated",true,"username",auth.getName());}
+    @ExceptionHandler(AuthenticationException.class) @ResponseStatus(HttpStatus.UNAUTHORIZED) Map<String,String> invalidCredentials(){return Map.of("error","INVALID_CREDENTIALS");}
     @PostMapping("/logout") void logout(HttpServletRequest request){var session=request.getSession(false);if(session!=null)session.invalidate();SecurityContextHolder.clearContext();}
     @GetMapping("/me") Map<String,Object> me(Authentication auth){return Map.of("authenticated",auth!=null&&auth.isAuthenticated(),"username",auth==null?"":auth.getName());}
 }
