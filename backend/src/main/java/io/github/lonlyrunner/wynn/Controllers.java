@@ -41,7 +41,7 @@ record CommentRequest(@NotBlank @Size(max = 80) String author, @Size(max = 160) 
 record PostRequest(@NotBlank String slug, @NotBlank String titleZh, @NotBlank String titleEn, String category, String tags, String summaryZh, String summaryEn, String contentZh, String contentEn, String coverObjectKey, boolean published) {}
 record MediaRequest(@NotBlank String objectKey, String titleZh, String titleEn, String mediaType, String promptZh, String promptEn, int sortOrder) {}
 record ChatRequest(String model, @NotBlank @Size(max = 2000) String message, List<ChatTurn> history) {}
-record KnowledgeRequest(@NotBlank @Size(max = 200) String title, @Size(max = 500) String tags, @NotBlank @Size(max = 30000) String content, boolean enabled) {}
+record KnowledgeRequest(@NotBlank @Size(max = 200) String title, @Size(max = 500) String tags, String kind, @NotBlank @Size(max = 30000) String content, boolean enabled) {}
 
 @RestController
 @RequestMapping("/api/auth")
@@ -418,13 +418,14 @@ class AdminController {
     }
 
     private KnowledgeEntry saveKnowledge(KnowledgeEntry item, KnowledgeRequest request) {
-        item.title = request.title().trim(); item.tags = request.tags(); item.content = request.content().trim(); item.enabled = request.enabled(); item.updatedAt = Instant.now();
+        item.title = request.title().trim(); item.tags = request.tags(); item.kind = "PERSONA".equalsIgnoreCase(request.kind()) ? "PERSONA" : "KNOWLEDGE";
+        item.content = request.content().trim(); item.enabled = request.enabled(); item.updatedAt = Instant.now();
         return knowledge.save(item);
     }
 
     private Map<String, Object> knowledgeDto(KnowledgeEntry item) {
         Map<String, Object> dto = new LinkedHashMap<>();
-        dto.put("id", item.id); dto.put("title", item.title); dto.put("tags", item.tags == null ? "" : item.tags); dto.put("content", item.content);
+        dto.put("id", item.id); dto.put("title", item.title); dto.put("tags", item.tags == null ? "" : item.tags); dto.put("kind", item.kind == null ? "KNOWLEDGE" : item.kind); dto.put("content", item.content);
         dto.put("enabled", item.enabled); dto.put("updatedAt", item.updatedAt);
         return dto;
     }
@@ -459,8 +460,8 @@ class SeedData {
                 "在线程切换中保留必要上下文。", "Keep the right context across asynchronous boundaries.",
                 "# 上下文传递\n\n异步任务只携带真正需要的数据，并在任务结束时及时清理，能减少线程复用带来的数据串扰。",
                 "# Context propagation\n\nPass only the data an asynchronous task needs and clear it when the task completes.");
-            saveKnowledge(knowledge, "关于 Wynn", "人格,个人资料,站主", "Wynn 的公开昵称是 Lonely__Runner，常用英文签名是 Wynn Yale Yox，所在城市是洛阳。他是一名全栈开发者与 AI 应用实践者，关注 Java、Spring、Spring AI、Vue、MySQL、RAG 与 Agent 工程，也喜欢影像创作和轻量小游戏。网站理念是“随性而行，无拘无定”。");
-            saveKnowledge(knowledge, "团子的聊天方式", "人格,小猫,语气", "团子是网站里的毛茸茸小猫助手。它温柔、机灵、尊重事实，回答技术问题时清晰直接，聊生活与创作时轻松友好。它可以适度使用“喵”和猫爪符号，但不会为了可爱牺牲信息质量，也不会假装知道知识库中没有的 Wynn 私人经历。");
+            saveKnowledge(knowledge, "关于 Wynn", "个人资料,站主", "KNOWLEDGE", "Wynn 的公开昵称是 Lonely__Runner，常用英文签名是 Wynn Yale Yox，所在城市是洛阳。他是一名全栈开发者与 AI 应用实践者，关注 Java、Spring、Spring AI、Vue、MySQL、RAG 与 Agent 工程，也喜欢影像创作和轻量小游戏。网站理念是“随性而行，无拘无定”。");
+            saveKnowledge(knowledge, "团子的聊天方式", "人格,小猫,语气", "PERSONA", "团子是网站里的毛茸茸小猫助手。它温柔、机灵、尊重事实，回答技术问题时清晰直接，聊生活与创作时轻松友好。它可以适度使用“喵”和猫爪符号，但不会为了可爱牺牲信息质量，也不会假装知道知识库中没有的 Wynn 私人经历。");
         };
     }
 
@@ -473,9 +474,10 @@ class SeedData {
         posts.save(post);
     }
 
-    private void saveKnowledge(KnowledgeRepository knowledge, String title, String tags, String content) {
-        KnowledgeEntry item = knowledge.findByTitle(title).orElseGet(() -> new KnowledgeEntry(title, tags, content));
-        item.tags = tags; item.content = content; item.enabled = true; item.updatedAt = Instant.now();
+    private void saveKnowledge(KnowledgeRepository knowledge, String title, String tags, String kind, String content) {
+        var existing = knowledge.findByTitle(title);
+        KnowledgeEntry item = existing.orElseGet(() -> new KnowledgeEntry(title, tags, content));
+        item.tags = tags; item.kind = kind; item.content = content; if (existing.isEmpty()) item.enabled = true; item.updatedAt = Instant.now();
         knowledge.save(item);
     }
 }

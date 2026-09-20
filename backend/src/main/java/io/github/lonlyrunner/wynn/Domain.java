@@ -134,6 +134,7 @@ class KnowledgeEntry {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) Long id;
     @Column(nullable = false, length = 200) String title;
     @Column(length = 500) String tags;
+    @Column(length = 20) String kind = "KNOWLEDGE";
     @Lob @Column(nullable = false) String content;
     boolean enabled = true;
     Instant createdAt = Instant.now();
