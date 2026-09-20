@@ -321,6 +321,29 @@ class AdminController {
         return Map.of("id", media.save(item).id, "status", "SAVED");
     }
 
+    @PostMapping(value = "/media/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    Object uploadMedia(@RequestParam MultipartFile file, @RequestParam(defaultValue = "0") int sortOrder) throws Exception {
+        if (file.isEmpty()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "请选择需要上传的图片");
+        String contentType = Objects.requireNonNullElse(file.getContentType(), "application/octet-stream");
+        if (!contentType.startsWith("image/")) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "仅支持图片文件");
+        String originalName = Objects.requireNonNullElse(file.getOriginalFilename(), "image");
+        String safeName = originalName.replaceAll("[^a-zA-Z0-9._-]", "-");
+        String objectKey = "gallery/" + System.currentTimeMillis() + "-" + UUID.randomUUID() + "-" + safeName;
+        oss.put(objectKey, file.getBytes(), contentType);
+        String title = originalName.replaceFirst("\\.[^.]+$", "");
+        MediaItem item = new MediaItem(objectKey, title, title, "IMAGE", sortOrder);
+        ensurePrompt(item);
+        return Map.of("id", media.save(item).id, "status", "SAVED", "objectKey", objectKey);
+    }
+
+    @DeleteMapping("/media/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void deleteMedia(@PathVariable Long id) {
+        MediaItem item = media.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (oss.configured()) oss.delete(item.objectKey);
+        media.delete(item);
+    }
+
     @PostMapping("/media/prompts/backfill")
     Object backfillPrompts() {
         int updated = 0;
