@@ -11,6 +11,8 @@ const routes = [
   { path: '/gallery', name: 'gallery', component: PageView },
   { path: '/studio', name: 'studio', component: PageView, meta: { private: true } },
   { path: '/about', name: 'about', component: PageView },
+  { path: '/privacy', name: 'privacy', component: PageView },
+  { path: '/terms', name: 'terms', component: PageView },
   { path: '/games', name: 'games', component: PageView },
   { path: '/games/:game', name: 'game', component: PageView },
   { path: '/login', name: 'login', component: PageView },
