@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import type { ECharts } from 'echarts'
 import DOMPurify from 'dompurify'
 import { marked } from 'marked'
 import { api, ApiError } from './api'
@@ -144,11 +145,33 @@ const postForm=ref<AdminPost>(emptyPost()), knowledgeForm=ref<AdminKnowledge>(em
 const uploads=ref<UploadItem[]>([])
 const categorySeries=computed(()=>{const counts=new Map<string,number>();for(const post of adminPosts.value)counts.set(post.category||'OTHER',(counts.get(post.category||'OTHER')||0)+1);return [...counts.entries()].map(([label,value])=>({label,value})).sort((a,b)=>b.value-a.value)})
 const aiStatusSeries=computed(()=>{const counts=new Map<string,number>();for(const job of adminJobs.value)counts.set(job.status||'UNKNOWN',(counts.get(job.status||'UNKNOWN')||0)+1);return [...counts.entries()].map(([label,value])=>({label,value})).sort((a,b)=>b.value-a.value)})
-const maxCategory=computed(()=>Math.max(1,...categorySeries.value.map(item=>item.value)))
-const maxAiStatus=computed(()=>Math.max(1,...aiStatusSeries.value.map(item=>item.value)))
 const enabledKnowledgeCount=computed(()=>adminKnowledge.value.filter(item=>item.enabled&&item.kind==='KNOWLEDGE').length)
 const enabledPersonaCount=computed(()=>adminKnowledge.value.filter(item=>item.enabled&&item.kind==='PERSONA').length)
 const enabledKnowledgePercent=computed(()=>adminKnowledge.value.length?Math.round(adminKnowledge.value.filter(item=>item.enabled).length/adminKnowledge.value.length*100):0)
+const postChartEl=ref<HTMLDivElement>(), jobChartEl=ref<HTMLDivElement>(), ragChartEl=ref<HTMLDivElement>()
+let postChart:ECharts|undefined, jobChart:ECharts|undefined, ragChart:ECharts|undefined, echartsModule:typeof import('echarts')|undefined
+const chartText='#674b42', chartAccent='#b97868', chartPeach='#e0a08f', chartSoft='#f0ddd3'
+function disposeAdminCharts(){postChart?.dispose();jobChart?.dispose();ragChart?.dispose();postChart=jobChart=ragChart=undefined}
+function resizeAdminCharts(){postChart?.resize();jobChart?.resize();ragChart?.resize()}
+async function renderAdminCharts(){
+  if(route.name!=='admin'||adminTab.value!=='overview'){disposeAdminCharts();return}
+  await nextTick()
+  if(route.name!=='admin'||adminTab.value!=='overview')return
+  const echarts=echartsModule||(echartsModule=await import('echarts'))
+  if(postChartEl.value){
+    postChart=echarts.getInstanceByDom(postChartEl.value)||echarts.init(postChartEl.value)
+    postChart.setOption({color:[chartAccent],tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},grid:{left:8,right:24,top:8,bottom:8,containLabel:true},xAxis:{type:'value',minInterval:1,splitLine:{lineStyle:{color:'#f3e4dc'}}},yAxis:{type:'category',data:categorySeries.value.map(item=>item.label).reverse(),axisLine:{show:false},axisTick:{show:false},axisLabel:{color:chartText,fontSize:10}},series:[{type:'bar',data:categorySeries.value.map(item=>item.value).reverse(),barWidth:11,itemStyle:{borderRadius:8,color:chartAccent},label:{show:true,position:'right',color:chartText}}]})
+  }
+  if(jobChartEl.value){
+    jobChart=echarts.getInstanceByDom(jobChartEl.value)||echarts.init(jobChartEl.value)
+    jobChart.setOption({color:[chartAccent,chartPeach,'#caa88d','#a88782','#8fa89a'],tooltip:{trigger:'item'},legend:{bottom:0,textStyle:{color:chartText,fontSize:9}},series:[{type:'pie',radius:['43%','68%'],center:['50%','43%'],padAngle:3,itemStyle:{borderRadius:7},label:{color:chartText,fontSize:10,formatter:'{b}\n{c}'},data:aiStatusSeries.value.map(item=>({name:item.label,value:item.value}))}]})
+  }
+  if(ragChartEl.value){
+    ragChart=echarts.getInstanceByDom(ragChartEl.value)||echarts.init(ragChartEl.value)
+    ragChart.setOption({series:[{type:'gauge',startAngle:90,endAngle:-270,radius:'80%',pointer:{show:false},progress:{show:true,roundCap:true,width:15,itemStyle:{color:chartAccent}},axisLine:{lineStyle:{width:15,color:[[1,chartSoft]]}},axisTick:{show:false},splitLine:{show:false},axisLabel:{show:false},detail:{valueAnimation:true,offsetCenter:[0,'2%'],formatter:'{value}%',color:chartText,fontFamily:'Georgia',fontSize:27},title:{show:true,offsetCenter:[0,'32%'],color:'#9a786d',fontSize:10},data:[{value:enabledKnowledgePercent.value,name:text('已启用','ACTIVE')}]}]})
+  }
+  resizeAdminCharts()
+}
 async function loadAdmin(){if(!sessionStorage.getItem('wynn-auth'))return;try{[adminPosts.value,adminComments.value,adminJobs.value,adminKnowledge.value]=await Promise.all([api<AdminPost[]>('/admin/posts'),api<AdminComment[]>('/admin/comments'),api<AiJob[]>('/admin/ai/jobs'),api<AdminKnowledge[]>('/admin/knowledge')])}catch{}}
 function editPost(post:AdminPost){postForm.value={...post};adminTab.value='posts'}
 function resetPost(){postForm.value=emptyPost();adminNotice.value=''}
@@ -179,7 +202,8 @@ const board=ref([2,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0])
 function stackMove(){const values=board.value.filter(Boolean);for(let i=0;i<values.length-1;i++)if(values[i]===values[i+1]){values[i]*=2;score.value+=values[i];values.splice(i+1,1)}while(values.length<16)values.push(0);const empty=values.map((v,i)=>v?-1:i).filter(i=>i>=0);if(empty.length)values[empty[Math.floor(Math.random()*empty.length)]]=Math.random()>.8?4:2;board.value=values}
 function key(event:KeyboardEvent){if(gameId.value==='flight'){if(event.key==='ArrowLeft')planeX.value=Math.max(8,planeX.value-5);if(event.key==='ArrowRight')planeX.value=Math.min(92,planeX.value+5)}if(gameId.value==='stack'&&event.key.startsWith('Arrow')){event.preventDefault();stackMove()}}
 function startFlight(){playing.value=!playing.value;if(playing.value)timer.value=window.setInterval(()=>score.value++,120);else clearInterval(timer.value)}
-onMounted(()=>{addEventListener('keydown',key);loadPublic();if(route.name==='admin')loadAdmin()});onBeforeUnmount(()=>{removeEventListener('keydown',key);clearInterval(timer.value);clearInterval(aiPollTimer)})
+watch(()=>[adminTab.value,categorySeries.value,aiStatusSeries.value,enabledKnowledgePercent.value],renderAdminCharts,{deep:true})
+onMounted(()=>{addEventListener('keydown',key);addEventListener('resize',resizeAdminCharts);loadPublic();if(route.name==='admin')loadAdmin()});onBeforeUnmount(()=>{removeEventListener('keydown',key);removeEventListener('resize',resizeAdminCharts);disposeAdminCharts();clearInterval(timer.value);clearInterval(aiPollTimer)})
 watch(()=>route.fullPath,()=>{mobileOpen.value=false;notice.value='';playing.value=false;soundOn.value=false;clearInterval(timer.value);clearInterval(aiPollTimer);loadPublic();if(route.name==='admin')loadAdmin()})
 </script>
 
@@ -241,9 +265,9 @@ watch(()=>route.fullPath,()=>{mobileOpen.value=false;notice.value='';playing.val
     <article><span>{{text('已启用人格','Active personas')}}</span><b>{{enabledPersonaCount}}</b></article>
   </div>
   <div class="dashboard-charts">
-    <article class="chart-card"><header><div><small>CONTENT MIX</small><h2>{{text('文章分类','Post categories')}}</h2></div><b>{{adminPosts.length}}</b></header><div class="bar-chart"><p v-for="item in categorySeries" :key="item.label"><span>{{item.label}}</span><i><em :style="{width:`${item.value/maxCategory*100}%`}"></em></i><b>{{item.value}}</b></p><div v-if="!categorySeries.length" class="chart-empty">{{text('暂无文章数据','No post data')}}</div></div></article>
-    <article class="chart-card"><header><div><small>AI ACTIVITY</small><h2>{{text('AI 任务状态','AI job status')}}</h2></div><b>{{adminJobs.length}}</b></header><div class="bar-chart ai-bars"><p v-for="item in aiStatusSeries" :key="item.label"><span>{{item.label}}</span><i><em :style="{width:`${item.value/maxAiStatus*100}%`}"></em></i><b>{{item.value}}</b></p><div v-if="!aiStatusSeries.length" class="chart-empty">{{text('暂无任务数据','No job data')}}</div></div></article>
-    <article class="chart-card knowledge-chart"><header><div><small>RAG CONTROL</small><h2>{{text('知识与人格启用率','Knowledge activation')}}</h2></div></header><div class="donut" :style="{background:`conic-gradient(#b97868 0 ${enabledKnowledgePercent}%,#f0ddd3 ${enabledKnowledgePercent}% 100%)`}"><span><b>{{enabledKnowledgePercent}}%</b><small>{{text('已启用','active')}}</small></span></div><p><span>📚 {{text('知识库','Knowledge')}}</span><b>{{enabledKnowledgeCount}}</b></p><p><span>🐾 {{text('人格','Personas')}}</span><b>{{enabledPersonaCount}}</b></p></article>
+    <article class="chart-card"><header><div><small>ECHARTS · CONTENT MIX</small><h2>{{text('文章分类','Post categories')}}</h2></div><b>{{adminPosts.length}}</b></header><div ref="postChartEl" class="e-chart" :aria-label="text('文章分类柱状图','Post category bar chart')"></div></article>
+    <article class="chart-card"><header><div><small>ECHARTS · AI ACTIVITY</small><h2>{{text('AI 任务状态','AI job status')}}</h2></div><b>{{adminJobs.length}}</b></header><div ref="jobChartEl" class="e-chart" :aria-label="text('AI 任务状态环形图','AI job status donut chart')"></div></article>
+    <article class="chart-card knowledge-chart"><header><div><small>ECHARTS · RAG CONTROL</small><h2>{{text('知识与人格启用率','Knowledge activation')}}</h2></div></header><div ref="ragChartEl" class="e-chart rag-echart" :aria-label="text('知识与人格启用率仪表图','Knowledge activation gauge chart')"></div><p><span>📚 {{text('知识库','Knowledge')}}</span><b>{{enabledKnowledgeCount}}</b></p><p><span>🐾 {{text('人格','Personas')}}</span><b>{{enabledPersonaCount}}</b></p></article>
   </div>
   <div class="admin-panels"><article><h2>{{text('最近内容','Recent content')}}</h2><p v-for="post in adminPosts.slice(0,5)" :key="post.slug"><b>{{post.titleZh}}</b><span>{{post.category}}</span></p></article><article><h2>{{text('待处理事项','Needs attention')}}</h2><p><b>{{text('待审评论','Pending comments')}}</b><em>{{adminComments.filter(c=>!c.approved).length}}</em></p><p><b>{{text('失败的 AI 任务','Failed AI jobs')}}</b><em>{{adminJobs.filter(job=>job.status==='FAILED').length}}</em></p><p><b>{{text('停用的知识/人格','Disabled entries')}}</b><em>{{adminKnowledge.filter(item=>!item.enabled).length}}</em></p></article></div>
 </template><template v-else-if="adminTab==='posts'"><div class="admin-workspace"><form class="post-editor" @submit.prevent="savePost"><div class="editor-head"><h2>{{postForm.id?text('编辑文章','Edit post'):text('新建文章','New post')}}</h2><button type="button" @click="resetPost">＋ {{text('清空','Reset')}}</button></div><div class="form-grid"><label>Slug<input v-model="postForm.slug" required></label><label>{{text('分类','Category')}}<input v-model="postForm.category"></label><label>{{text('中文标题','Chinese title')}}<input v-model="postForm.titleZh" required></label><label>{{text('英文标题','English title')}}<input v-model="postForm.titleEn" required></label><label class="wide">{{text('标签（逗号分隔）','Tags')}}<input v-model="postForm.tags"></label><label class="wide">{{text('中文摘要','Chinese summary')}}<textarea v-model="postForm.summaryZh"></textarea></label><label class="wide">{{text('英文摘要','English summary')}}<textarea v-model="postForm.summaryEn"></textarea></label><label class="wide">{{text('中文 Markdown','Chinese Markdown')}}<textarea class="content-editor" v-model="postForm.contentZh"></textarea></label><label class="wide">{{text('英文 Markdown','English Markdown')}}<textarea class="content-editor" v-model="postForm.contentEn"></textarea></label><label>{{text('封面 OSS Key','Cover OSS key')}}<input v-model="postForm.coverObjectKey"></label><label class="check"><input v-model="postForm.published" type="checkbox">{{text('立即发布','Publish now')}}</label></div><div class="editor-actions"><label class="file-button">{{text('上传 Word / PDF / Markdown 自动解析','Import Word / PDF / Markdown')}}<input type="file" accept=".doc,.docx,.pdf,.md,.txt" @change="importDocument"></label><button>{{text('保存文章','Save post')}}</button><small>{{adminNotice}}</small></div></form><div class="admin-list"><article v-for="post in adminPosts" :key="post.id"><div><small>{{post.published?text('已发布','Published'):text('草稿','Draft')}}</small><h3>{{post.titleZh}}</h3><p>{{post.category}} · {{post.tags}}</p></div><button @click="editPost(post)">{{text('编辑','Edit')}}</button><button class="danger" @click="removePost(post.id)">{{text('删除','Delete')}}</button></article></div></div></template><template v-else-if="adminTab==='media'">
