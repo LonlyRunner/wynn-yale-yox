@@ -66,6 +66,8 @@ class MediaItem {
     String titleZh;
     String titleEn;
     String mediaType;
+    @Column(length = 4000) String promptZh;
+    @Column(length = 4000) String promptEn;
     int sortOrder;
     Instant createdAt = Instant.now();
 

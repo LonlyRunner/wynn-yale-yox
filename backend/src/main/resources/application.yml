@@ -40,6 +40,7 @@ app:
       base-url: ${QWEN_BASE_URL:}
       api-key: ${QWEN_API_KEY:}
       image-model: ${QWEN_IMAGE_MODEL:qwen-image-3.0}
+      vision-model: ${QWEN_VISION_MODEL:qwen3-vl-flash}
     relay:
       base-url: ${RELAY_BASE_URL:}
       api-key: ${RELAY_API_KEY:}

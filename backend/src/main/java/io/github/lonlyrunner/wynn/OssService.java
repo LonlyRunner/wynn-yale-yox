@@ -5,6 +5,7 @@ import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
 import com.aliyun.oss.model.GeneratePresignedUrlRequest;
 import com.aliyun.oss.model.ObjectMetadata;
+import com.aliyun.oss.model.ResponseHeaderOverrides;
 import java.io.ByteArrayInputStream;
 import java.time.Duration;
 import java.util.Date;
@@ -41,6 +42,21 @@ class OssService {
         try {
             GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucket, objectKey, HttpMethod.GET);
             request.setExpiration(new Date(System.currentTimeMillis() + Duration.ofHours(6).toMillis()));
+            return client.generatePresignedUrl(request).toString();
+        } finally {
+            client.shutdown();
+        }
+    }
+
+    String presignedDownloadUrl(String objectKey, String filename) {
+        requireConfigured();
+        OSS client = client();
+        try {
+            GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucket, objectKey, HttpMethod.GET);
+            request.setExpiration(new Date(System.currentTimeMillis() + Duration.ofHours(1).toMillis()));
+            ResponseHeaderOverrides headers = new ResponseHeaderOverrides();
+            headers.setContentDisposition("attachment; filename=\"" + filename.replaceAll("[^a-zA-Z0-9._-]", "-") + "\"");
+            request.setResponseHeaders(headers);
             return client.generatePresignedUrl(request).toString();
         } finally {
             client.shutdown();

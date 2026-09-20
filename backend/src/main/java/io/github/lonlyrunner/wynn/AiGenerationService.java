@@ -9,6 +9,7 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,6 +32,7 @@ class AiGenerationService {
     @Value("${app.ai.qwen.base-url:}") String qwenBaseUrl;
     @Value("${app.ai.qwen.api-key:}") String qwenApiKey;
     @Value("${app.ai.qwen.image-model:qwen-image-3.0}") String qwenImageModel;
+    @Value("${app.ai.qwen.vision-model:qwen3-vl-flash}") String qwenVisionModel;
 
     AiGenerationService(AiJobRepository jobs, OssService oss) {
         this.jobs = jobs;
@@ -111,6 +113,34 @@ class AiGenerationService {
     String resultUrl(AiJob job) {
         if (job.resultObjectKey != null && oss.configured()) return oss.presignedGetUrl(job.resultObjectKey);
         return job.resultUrl;
+    }
+
+    String downloadUrl(AiJob job) {
+        if (job.resultObjectKey == null || !oss.configured()) return job.resultUrl;
+        String extension = job.resultObjectKey.contains(".") ? job.resultObjectKey.substring(job.resultObjectKey.lastIndexOf('.') + 1) : ("VIDEO".equals(job.type) ? "mp4" : "jpg");
+        return oss.presignedDownloadUrl(job.resultObjectKey, "wynn-ai-" + job.id + "." + extension);
+    }
+
+    Map<String, String> describeImage(String imageUrl, String title) throws Exception {
+        requireConfig(qwenBaseUrl, qwenApiKey, "Qwen Vision");
+        Map<String, Object> image = Map.of("type", "image_url", "image_url", Map.of("url", imageUrl));
+        Map<String, Object> instruction = Map.of("type", "text", "text",
+            "Analyze this image for a reusable image-generation prompt. Return JSON only with promptZh and promptEn. " +
+            "Describe subject, composition, lighting, palette, atmosphere, lens or illustration style, and key details. " +
+            "Do not identify real people and do not add markdown. Suggested title: " + (title == null ? "" : title));
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("model", qwenVisionModel);
+        payload.put("messages", List.of(Map.of("role", "user", "content", List.of(image, instruction))));
+        payload.put("temperature", 0.2);
+        JsonNode response = postJson(apiUrl(qwenBaseUrl, "/chat/completions"), qwenApiKey, payload);
+        String content = response.path("choices").path(0).path("message").path("content").asText();
+        int start = content.indexOf('{'), end = content.lastIndexOf('}');
+        if (start < 0 || end <= start) throw new IllegalStateException("视觉模型没有返回有效提示词");
+        JsonNode prompts = json.readTree(content.substring(start, end + 1));
+        String zh = prompts.path("promptZh").asText();
+        String en = prompts.path("promptEn").asText();
+        if (zh.isBlank() || en.isBlank()) throw new IllegalStateException("视觉模型返回的提示词不完整");
+        return Map.of("promptZh", zh, "promptEn", en);
     }
 
     private String requestImage(String baseUrl, String apiKey, String model, String prompt, String aspectRatio, boolean qwen) throws Exception {

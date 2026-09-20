@@ -39,7 +39,7 @@ record LoginRequest(@NotBlank String username, @NotBlank String password) {}
 record AiJobRequest(@NotBlank String type, @NotBlank @Size(max = 4000) String prompt, String aspectRatio, String resolution, Integer duration) {}
 record CommentRequest(@NotBlank @Size(max = 80) String author, @Size(max = 160) String email, @NotBlank @Size(max = 2000) String content) {}
 record PostRequest(@NotBlank String slug, @NotBlank String titleZh, @NotBlank String titleEn, String category, String tags, String summaryZh, String summaryEn, String contentZh, String contentEn, String coverObjectKey, boolean published) {}
-record MediaRequest(@NotBlank String objectKey, String titleZh, String titleEn, String mediaType, int sortOrder) {}
+record MediaRequest(@NotBlank String objectKey, String titleZh, String titleEn, String mediaType, String promptZh, String promptEn, int sortOrder) {}
 
 @RestController
 @RequestMapping("/api/auth")
@@ -165,7 +165,8 @@ class PublicController {
     private Map<String, Object> mediaDto(MediaItem item) {
         Map<String, Object> dto = new LinkedHashMap<>();
         dto.put("id", item.id); dto.put("objectKey", item.objectKey); dto.put("titleZh", value(item.titleZh)); dto.put("titleEn", value(item.titleEn));
-        dto.put("mediaType", value(item.mediaType)); dto.put("sortOrder", item.sortOrder); dto.put("url", signed(item.objectKey));
+        dto.put("mediaType", value(item.mediaType)); dto.put("promptZh", value(item.promptZh)); dto.put("promptEn", value(item.promptEn));
+        dto.put("sortOrder", item.sortOrder); dto.put("url", signed(item.objectKey));
         return dto;
     }
 
@@ -251,6 +252,7 @@ class AiController {
         Map<String, Object> dto = new LinkedHashMap<>();
         dto.put("id", job.id); dto.put("provider", job.provider); dto.put("type", job.type); dto.put("prompt", job.prompt); dto.put("status", job.status);
         dto.put("aspectRatio", job.aspectRatio); dto.put("resolution", job.resolution); dto.put("duration", job.duration); dto.put("resultUrl", generator.resultUrl(job));
+        dto.put("downloadUrl", generator.downloadUrl(job));
         dto.put("error", job.errorMessage == null ? "" : job.errorMessage); dto.put("createdAt", job.createdAt);
         return dto;
     }
@@ -291,7 +293,22 @@ class AdminController {
     Object media(@Valid @RequestBody MediaRequest request) {
         MediaItem item = media.findByObjectKey(request.objectKey()).orElseGet(() -> new MediaItem(request.objectKey(), request.titleZh(), request.titleEn(), request.mediaType(), request.sortOrder()));
         item.titleZh = request.titleZh(); item.titleEn = request.titleEn(); item.mediaType = request.mediaType(); item.sortOrder = request.sortOrder();
+        item.promptZh = request.promptZh(); item.promptEn = request.promptEn();
+        ensurePrompt(item);
         return Map.of("id", media.save(item).id, "status", "SAVED");
+    }
+
+    @PostMapping("/media/prompts/backfill")
+    Object backfillPrompts() {
+        int updated = 0;
+        for (MediaItem item : media.findAll()) {
+            if ((item.promptZh == null || item.promptZh.isBlank()) && "IMAGE".equalsIgnoreCase(item.mediaType)) {
+                ensurePrompt(item);
+                media.save(item);
+                updated++;
+            }
+        }
+        return Map.of("updated", updated);
     }
 
     @GetMapping("/posts")
@@ -354,8 +371,21 @@ class AdminController {
     private Map<String, Object> adminJobDto(AiJob job) {
         Map<String, Object> dto = new LinkedHashMap<>();
         dto.put("id", job.id); dto.put("provider", job.provider); dto.put("type", job.type); dto.put("prompt", job.prompt); dto.put("status", job.status);
-        dto.put("resultUrl", generator.resultUrl(job)); dto.put("error", job.errorMessage == null ? "" : job.errorMessage); dto.put("createdAt", job.createdAt);
+        dto.put("resultUrl", generator.resultUrl(job)); dto.put("downloadUrl", generator.downloadUrl(job));
+        dto.put("error", job.errorMessage == null ? "" : job.errorMessage); dto.put("createdAt", job.createdAt);
         return dto;
+    }
+
+    private void ensurePrompt(MediaItem item) {
+        if ((item.promptZh != null && !item.promptZh.isBlank()) || !"IMAGE".equalsIgnoreCase(item.mediaType)) return;
+        String title = item.titleZh == null || item.titleZh.isBlank() ? "未命名影像" : item.titleZh;
+        try {
+            Map<String, String> prompts = generator.describeImage(oss.presignedGetUrl(item.objectKey), title);
+            item.promptZh = prompts.get("promptZh"); item.promptEn = prompts.get("promptEn");
+        } catch (Exception error) {
+            item.promptZh = "以“" + title + "”为主题，突出主体、柔和光影、细腻质感与协调色彩，画面具有完整构图和温暖氛围。";
+            item.promptEn = "Create an image inspired by \"" + title + "\", with a clear subject, soft lighting, fine texture, a balanced palette, polished composition, and a warm atmosphere.";
+        }
     }
 }
 
