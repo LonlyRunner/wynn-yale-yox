@@ -112,6 +112,11 @@ const fallbackGallery:GalleryItem[] = [
   ['白色回忆','White Memory','avatar-white.jpg','灰白单色动漫少女抱膝坐着，长发与黑色蝴蝶结，朦胧柔光，安静忧郁的头像构图。','Monochrome anime girl sitting with knees hugged, long pale hair and black ribbons, hazy soft light, quiet melancholic avatar composition.']
 ].map(([titleZh,titleEn,file,promptZh,promptEn])=>({titleZh,titleEn,mediaType:'IMAGE',url:`/media/user-gallery/${file}`,promptZh,promptEn}))
 const galleryItems = ref<GalleryItem[]>(fallbackGallery)
+function randomGallery(items:GalleryItem[]){const shuffled=[...items];for(let i=shuffled.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]]}return shuffled.slice(0,Math.min(3,shuffled.length))}
+const homeGallery=ref<GalleryItem[]>(randomGallery(fallbackGallery))
+const gallerySignature=(items:GalleryItem[])=>items.map(item=>item.id||item.objectKey||item.url).join('|')
+let homeGallerySignature=gallerySignature(fallbackGallery)
+function updateGallery(items:GalleryItem[]){galleryItems.value=items;const signature=gallerySignature(items);if(signature!==homeGallerySignature){homeGallerySignature=signature;homeGallery.value=randomGallery(items)}}
 const flippedGallery=ref<string|number>(), copiedGallery=ref<string|number>()
 const galleryKey=(item:GalleryItem,index:number)=>item.id||item.objectKey||item.url||index
 function flipGallery(item:GalleryItem,index:number){const key=galleryKey(item,index);flippedGallery.value=flippedGallery.value===key?undefined:key}
@@ -136,7 +141,7 @@ async function loadPosts(query=''){try{const data=await api<Array<Record<string,
 async function searchPosts(){await loadPosts(blogSearch.value.trim())}
 async function loadArticle(){if(route.name!=='article')return;await loadPosts();try{comments.value=await api(`/public/posts/${route.params.slug}/comments`)}catch{comments.value=[]}}
 async function submitComment(){commentNotice.value='';try{await api(`/public/posts/${route.params.slug}/comments`,{method:'POST',body:JSON.stringify(commentForm.value)});commentForm.value={author:'',email:'',content:''};commentNotice.value=text('评论已提交，审核后显示。','Comment submitted for review.')}catch(error){commentNotice.value=aiError(error)}}
-async function loadPublic(){loadPosts();api<Profile>('/public/profile').then(v=>profile.value=v).catch(()=>{});api<GalleryItem[]>('/public/media').then(v=>{if(v.length)galleryItems.value=v.map((item,index)=>{const fallback=fallbackGallery.find(local=>item.objectKey?.endsWith(local.url.split('/').pop()||''))||fallbackGallery[index];return{...item,promptZh:item.promptZh||fallback?.promptZh,promptEn:item.promptEn||fallback?.promptEn}})}).catch(()=>{});if(route.name==='studio')loadQuota();if(route.name==='article')loadArticle()}
+async function loadPublic(){loadPosts();api<Profile>('/public/profile').then(v=>profile.value=v).catch(()=>{});api<GalleryItem[]>('/public/media').then(v=>{if(v.length)updateGallery(v.map((item,index)=>{const fallback=fallbackGallery.find(local=>item.objectKey?.endsWith(local.url.split('/').pop()||''))||fallbackGallery[index];return{...item,promptZh:item.promptZh||fallback?.promptZh,promptEn:item.promptEn||fallback?.promptEn}}))}).catch(()=>{});if(route.name==='studio')loadQuota();if(route.name==='article')loadArticle()}
 
 const adminTab=ref<'overview'|'posts'|'media'|'ai'|'knowledge'|'comments'>('overview'), adminPosts=ref<AdminPost[]>([]), adminComments=ref<AdminComment[]>([]), adminJobs=ref<AiJob[]>([]), adminKnowledge=ref<AdminKnowledge[]>([])
 const emptyPost=():AdminPost=>({slug:'',titleZh:'',titleEn:'',category:'TECH',tags:'',summaryZh:'',summaryEn:'',contentZh:'',contentEn:'',coverObjectKey:'',published:false})
@@ -234,7 +239,7 @@ watch(()=>route.fullPath,()=>{mobileOpen.value=false;notice.value='';playing.val
 
     <section class="home-visuals">
       <header><div><small>SELECTED FRAMES</small><h2>{{text('从雾中拾取三帧','Three frames found in the mist')}}</h2></div><RouterLink to="/gallery">{{text('查看全部影像','View gallery')}} ↗</RouterLink></header>
-      <div class="visual-grid"><figure><img src="/media/home-gallery/mist-field.jpg" :alt="text('雾岭','Misty ridge')"><figcaption><b>01</b><span>{{text('雾岭','Misty Ridge')}}<small>03.5 SEC</small></span></figcaption></figure><figure><img src="/media/home-gallery/mountain-air.jpg" :alt="text('山风','Mountain air')"><figcaption><b>02</b><span>{{text('山风','Mountain Air')}}<small>11.5 SEC</small></span></figcaption></figure><figure><img src="/media/home-gallery/fading-memory.jpg" :alt="text('渐隐记忆','Fading memory')"><figcaption><b>03</b><span>{{text('渐隐记忆','Fading Memory')}}<small>15.0 SEC</small></span></figcaption></figure></div>
+      <div class="visual-grid"><figure v-for="(item,index) in homeGallery" :key="item.id||item.objectKey||item.url"><img :src="item.url" :alt="text(item.titleZh,item.titleEn)" loading="lazy"><figcaption><b>{{String(index+1).padStart(2,'0')}}</b><span>{{text(item.titleZh,item.titleEn)}}<small>FRAME {{String(index+1).padStart(2,'0')}}</small></span></figcaption></figure></div>
       <img class="visual-mouse" src="/media/cat-items/mouse.png" alt="">
     </section>
   </template>
