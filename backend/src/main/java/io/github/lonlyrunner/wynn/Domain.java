@@ -128,6 +128,26 @@ class GuestQuota {
     GuestQuota(String guestId) { this.guestId = guestId; }
 }
 
+@Entity
+@Table(name = "knowledge_entries")
+class KnowledgeEntry {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY) Long id;
+    @Column(nullable = false, length = 200) String title;
+    @Column(length = 500) String tags;
+    @Lob @Column(nullable = false) String content;
+    boolean enabled = true;
+    Instant createdAt = Instant.now();
+    Instant updatedAt = Instant.now();
+
+    protected KnowledgeEntry() {}
+
+    KnowledgeEntry(String title, String tags, String content) {
+        this.title = title;
+        this.tags = tags;
+        this.content = content;
+    }
+}
+
 interface PostRepository extends JpaRepository<Post, Long> {
     List<Post> findByPublishedTrueOrderByCreatedAtDesc();
     Optional<Post> findBySlugAndPublishedTrue(String slug);
@@ -152,4 +172,9 @@ interface AiJobRepository extends JpaRepository<AiJob, Long> {
 
 interface GuestQuotaRepository extends JpaRepository<GuestQuota, Long> {
     Optional<GuestQuota> findByGuestId(String guestId);
+}
+
+interface KnowledgeRepository extends JpaRepository<KnowledgeEntry, Long> {
+    List<KnowledgeEntry> findByEnabledTrueOrderByUpdatedAtDesc();
+    Optional<KnowledgeEntry> findByTitle(String title);
 }

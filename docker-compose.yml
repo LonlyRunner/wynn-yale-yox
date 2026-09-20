@@ -26,10 +26,14 @@ services:
       QWEN_API_KEY: ${QWEN_API_KEY}
       QWEN_IMAGE_MODEL: ${QWEN_IMAGE_MODEL:-qwen-image-3.0}
       QWEN_VISION_MODEL: ${QWEN_VISION_MODEL:-qwen3-vl-flash}
+      QWEN_CHAT_MODEL: ${QWEN_CHAT_MODEL:-qwen-plus}
       RELAY_BASE_URL: ${RELAY_BASE_URL}
       RELAY_API_KEY: ${RELAY_API_KEY}
       RELAY_IMAGE_MODEL: ${RELAY_IMAGE_MODEL:-grok-imagine-image-2.0}
       RELAY_VIDEO_MODEL: ${RELAY_VIDEO_MODEL:-grok-imagine-video-1.5}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_CHAT_MODEL: ${DEEPSEEK_CHAT_MODEL:-deepseek-v3.2}
     deploy: { resources: { limits: { memory: 700M } } }
   frontend:
     build: ./frontend

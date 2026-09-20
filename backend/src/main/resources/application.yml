@@ -46,3 +46,12 @@ app:
       api-key: ${RELAY_API_KEY:}
       image-model: ${RELAY_IMAGE_MODEL:grok-imagine-image-2.0}
       video-model: ${RELAY_VIDEO_MODEL:grok-imagine-video-1.5}
+    chat:
+      deepseek:
+        base-url: ${DEEPSEEK_BASE_URL:${QWEN_BASE_URL:}}
+        api-key: ${DEEPSEEK_API_KEY:${QWEN_API_KEY:}}
+        model: ${DEEPSEEK_CHAT_MODEL:deepseek-v3.2}
+      qwen:
+        base-url: ${QWEN_BASE_URL:}
+        api-key: ${QWEN_API_KEY:}
+        model: ${QWEN_CHAT_MODEL:qwen-plus}

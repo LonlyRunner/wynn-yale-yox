@@ -40,6 +40,8 @@ record AiJobRequest(@NotBlank String type, @NotBlank @Size(max = 4000) String pr
 record CommentRequest(@NotBlank @Size(max = 80) String author, @Size(max = 160) String email, @NotBlank @Size(max = 2000) String content) {}
 record PostRequest(@NotBlank String slug, @NotBlank String titleZh, @NotBlank String titleEn, String category, String tags, String summaryZh, String summaryEn, String contentZh, String contentEn, String coverObjectKey, boolean published) {}
 record MediaRequest(@NotBlank String objectKey, String titleZh, String titleEn, String mediaType, String promptZh, String promptEn, int sortOrder) {}
+record ChatRequest(String model, @NotBlank @Size(max = 2000) String message, List<ChatTurn> history) {}
+record KnowledgeRequest(@NotBlank @Size(max = 200) String title, @Size(max = 500) String tags, @NotBlank @Size(max = 30000) String content, boolean enabled) {}
 
 @RestController
 @RequestMapping("/api/auth")
@@ -176,6 +178,26 @@ class PublicController {
 }
 
 @RestController
+@RequestMapping("/api/chat")
+class ChatController {
+    private final CatChatService chat;
+
+    ChatController(CatChatService chat) { this.chat = chat; }
+
+    @GetMapping("/models")
+    Object models() { return chat.models(); }
+
+    @PostMapping("/messages")
+    Object message(@Valid @RequestBody ChatRequest request) {
+        try {
+            return chat.chat(request.model(), request.message(), request.history() == null ? List.of() : request.history());
+        } catch (IllegalStateException error) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, error.getMessage(), error);
+        }
+    }
+}
+
+@RestController
 @RequestMapping("/api/ai")
 class AiController {
     private static final String GUEST_COOKIE = "wynn_guest";
@@ -265,12 +287,13 @@ class AdminController {
     private final PostRepository posts;
     private final CommentRepository comments;
     private final MediaRepository media;
+    private final KnowledgeRepository knowledge;
     private final OssService oss;
     private final AiGenerationService generator;
     private final Tika tika = new Tika();
 
-    AdminController(AiJobRepository jobs, PostRepository posts, CommentRepository comments, MediaRepository media, OssService oss, AiGenerationService generator) {
-        this.jobs = jobs; this.posts = posts; this.comments = comments; this.media = media; this.oss = oss; this.generator = generator;
+    AdminController(AiJobRepository jobs, PostRepository posts, CommentRepository comments, MediaRepository media, KnowledgeRepository knowledge, OssService oss, AiGenerationService generator) {
+        this.jobs = jobs; this.posts = posts; this.comments = comments; this.media = media; this.knowledge = knowledge; this.oss = oss; this.generator = generator;
     }
 
     @GetMapping("/ai/jobs")
@@ -353,6 +376,24 @@ class AdminController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void deleteComment(@PathVariable Long id) { comments.deleteById(id); }
 
+    @GetMapping("/knowledge")
+    Object knowledge() { return knowledge.findAll().stream().map(this::knowledgeDto).toList(); }
+
+    @PostMapping("/knowledge")
+    Object createKnowledge(@Valid @RequestBody KnowledgeRequest request) { return knowledgeDto(saveKnowledge(new KnowledgeEntry(), request)); }
+
+    @PutMapping("/knowledge/{id}")
+    Object updateKnowledge(@PathVariable Long id, @Valid @RequestBody KnowledgeRequest request) {
+        return knowledgeDto(saveKnowledge(knowledge.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND)), request));
+    }
+
+    @DeleteMapping("/knowledge/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void deleteKnowledge(@PathVariable Long id) { knowledge.deleteById(id); }
+
+    @PostMapping(value = "/knowledge/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    Object importKnowledge(@RequestPart("file") MultipartFile file) { return importDocument(file); }
+
     private Post savePost(Post post, PostRequest request) {
         post.slug = request.slug(); post.titleZh = request.titleZh(); post.titleEn = request.titleEn(); post.category = request.category(); post.tags = request.tags();
         post.summaryZh = request.summaryZh(); post.summaryEn = request.summaryEn(); post.contentZh = request.contentZh(); post.contentEn = request.contentEn();
@@ -376,6 +417,18 @@ class AdminController {
         return dto;
     }
 
+    private KnowledgeEntry saveKnowledge(KnowledgeEntry item, KnowledgeRequest request) {
+        item.title = request.title().trim(); item.tags = request.tags(); item.content = request.content().trim(); item.enabled = request.enabled(); item.updatedAt = Instant.now();
+        return knowledge.save(item);
+    }
+
+    private Map<String, Object> knowledgeDto(KnowledgeEntry item) {
+        Map<String, Object> dto = new LinkedHashMap<>();
+        dto.put("id", item.id); dto.put("title", item.title); dto.put("tags", item.tags == null ? "" : item.tags); dto.put("content", item.content);
+        dto.put("enabled", item.enabled); dto.put("updatedAt", item.updatedAt);
+        return dto;
+    }
+
     private void ensurePrompt(MediaItem item) {
         if ((item.promptZh != null && !item.promptZh.isBlank()) || !"IMAGE".equalsIgnoreCase(item.mediaType)) return;
         String title = item.titleZh == null || item.titleZh.isBlank() ? "未命名影像" : item.titleZh;
@@ -392,7 +445,7 @@ class AdminController {
 @Configuration
 class SeedData {
     @Bean
-    CommandLineRunner seed(PostRepository posts) {
+    CommandLineRunner seed(PostRepository posts, KnowledgeRepository knowledge) {
         return args -> {
             saveSeed(posts, "reliable-agent", "从一次对话到一个可靠的 Agent", "From a Conversation to a Reliable Agent", "AI ENGINEERING", "Agent,Spring AI",
                 "可靠不是让模型更聪明，而是让系统知道什么时候继续、什么时候停下来。", "Reliability comes from clear state boundaries, recovery, and evidence.",
@@ -406,6 +459,8 @@ class SeedData {
                 "在线程切换中保留必要上下文。", "Keep the right context across asynchronous boundaries.",
                 "# 上下文传递\n\n异步任务只携带真正需要的数据，并在任务结束时及时清理，能减少线程复用带来的数据串扰。",
                 "# Context propagation\n\nPass only the data an asynchronous task needs and clear it when the task completes.");
+            saveKnowledge(knowledge, "关于 Wynn", "人格,个人资料,站主", "Wynn 的公开昵称是 Lonely__Runner，常用英文签名是 Wynn Yale Yox，所在城市是洛阳。他是一名全栈开发者与 AI 应用实践者，关注 Java、Spring、Spring AI、Vue、MySQL、RAG 与 Agent 工程，也喜欢影像创作和轻量小游戏。网站理念是“随性而行，无拘无定”。");
+            saveKnowledge(knowledge, "团子的聊天方式", "人格,小猫,语气", "团子是网站里的毛茸茸小猫助手。它温柔、机灵、尊重事实，回答技术问题时清晰直接，聊生活与创作时轻松友好。它可以适度使用“喵”和猫爪符号，但不会为了可爱牺牲信息质量，也不会假装知道知识库中没有的 Wynn 私人经历。");
         };
     }
 
@@ -416,5 +471,11 @@ class SeedData {
         post.summaryZh = summaryZh; post.summaryEn = summaryEn; post.contentZh = contentZh; post.contentEn = contentEn;
         post.published = true; post.updatedAt = Instant.now();
         posts.save(post);
+    }
+
+    private void saveKnowledge(KnowledgeRepository knowledge, String title, String tags, String content) {
+        KnowledgeEntry item = knowledge.findByTitle(title).orElseGet(() -> new KnowledgeEntry(title, tags, content));
+        item.tags = tags; item.content = content; item.enabled = true; item.updatedAt = Instant.now();
+        knowledge.save(item);
     }
 }
