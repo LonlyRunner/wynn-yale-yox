@@ -12,8 +12,9 @@ export class ApiError extends Error {
 
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   let response: Response
+  const headers = init.body instanceof FormData ? init.headers : { ...JSON_HEADERS, ...init.headers }
   try {
-    response = await fetch(`/api${path}`, { credentials: 'include', ...init, headers: { ...JSON_HEADERS, ...init.headers } })
+    response = await fetch(`/api${path}`, { credentials: 'include', ...init, headers })
   } catch {
     throw new ApiError(0, 'NETWORK_ERROR')
   }

@@ -6,6 +6,10 @@ server:
         http-only: true
         same-site: lax
 spring:
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
   datasource:
     url: ${DB_URL:jdbc:h2:file:./data/wynn;MODE=MySQL;AUTO_SERVER=TRUE}
     username: ${DB_USERNAME:sa}
@@ -31,3 +35,13 @@ app:
     bucket: ${OSS_BUCKET:}
     access-key-id: ${OSS_ACCESS_KEY_ID:}
     access-key-secret: ${OSS_ACCESS_KEY_SECRET:}
+  ai:
+    qwen:
+      base-url: ${QWEN_BASE_URL:}
+      api-key: ${QWEN_API_KEY:}
+      image-model: ${QWEN_IMAGE_MODEL:qwen-image-3.0}
+    relay:
+      base-url: ${RELAY_BASE_URL:}
+      api-key: ${RELAY_API_KEY:}
+      image-model: ${RELAY_IMAGE_MODEL:grok-imagine-image-2.0}
+      video-model: ${RELAY_VIDEO_MODEL:grok-imagine-video-1.5}

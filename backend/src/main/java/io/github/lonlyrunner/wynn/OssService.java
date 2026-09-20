@@ -1,8 +1,11 @@
 package io.github.lonlyrunner.wynn;
 
 import com.aliyun.oss.HttpMethod;
+import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
 import com.aliyun.oss.model.GeneratePresignedUrlRequest;
+import com.aliyun.oss.model.ObjectMetadata;
+import java.io.ByteArrayInputStream;
 import java.time.Duration;
 import java.util.Date;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,5 +17,56 @@ class OssService {
     @Value("${app.oss.bucket:}") String bucket;
     @Value("${app.oss.access-key-id:}") String accessKeyId;
     @Value("${app.oss.access-key-secret:}") String accessKeySecret;
-    String presignedPutUrl(String objectKey){if(endpoint.isBlank()||bucket.isBlank()||accessKeyId.isBlank()||accessKeySecret.isBlank())throw new IllegalStateException("OSS is not configured");var client=new OSSClientBuilder().build(endpoint,accessKeyId,accessKeySecret);try{var request=new GeneratePresignedUrlRequest(bucket,objectKey,HttpMethod.PUT);request.setExpiration(new Date(System.currentTimeMillis()+Duration.ofMinutes(10).toMillis()));return client.generatePresignedUrl(request).toString();}finally{client.shutdown();}}
+
+    boolean configured() {
+        return !endpoint.isBlank() && !bucket.isBlank() && !accessKeyId.isBlank() && !accessKeySecret.isBlank();
+    }
+
+    String presignedPutUrl(String objectKey, String contentType) {
+        requireConfigured();
+        OSS client = client();
+        try {
+            GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucket, objectKey, HttpMethod.PUT);
+            if (contentType != null && !contentType.isBlank()) request.setContentType(contentType);
+            request.setExpiration(new Date(System.currentTimeMillis() + Duration.ofMinutes(10).toMillis()));
+            return client.generatePresignedUrl(request).toString();
+        } finally {
+            client.shutdown();
+        }
+    }
+
+    String presignedGetUrl(String objectKey) {
+        requireConfigured();
+        OSS client = client();
+        try {
+            GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucket, objectKey, HttpMethod.GET);
+            request.setExpiration(new Date(System.currentTimeMillis() + Duration.ofHours(6).toMillis()));
+            return client.generatePresignedUrl(request).toString();
+        } finally {
+            client.shutdown();
+        }
+    }
+
+    void put(String objectKey, byte[] bytes, String contentType) {
+        requireConfigured();
+        OSS client = client();
+        try {
+            ObjectMetadata metadata = new ObjectMetadata();
+            metadata.setContentLength(bytes.length);
+            if (contentType != null && !contentType.isBlank()) metadata.setContentType(contentType);
+            client.putObject(bucket, objectKey, new ByteArrayInputStream(bytes), metadata);
+        } finally {
+            client.shutdown();
+        }
+    }
+
+    void delete(String objectKey) {
+        requireConfigured();
+        OSS client = client();
+        try { client.deleteObject(bucket, objectKey); }
+        finally { client.shutdown(); }
+    }
+
+    private OSS client() { return new OSSClientBuilder().build(endpoint, accessKeyId, accessKeySecret); }
+    private void requireConfigured() { if (!configured()) throw new IllegalStateException("OSS is not configured"); }
 }

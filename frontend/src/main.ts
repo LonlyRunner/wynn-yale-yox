@@ -9,7 +9,7 @@ const routes = [
   { path: '/blog', name: 'blog', component: PageView },
   { path: '/blog/:slug', name: 'article', component: PageView },
   { path: '/gallery', name: 'gallery', component: PageView },
-  { path: '/studio', name: 'studio', component: PageView, meta: { private: true } },
+  { path: '/studio', name: 'studio', component: PageView },
   { path: '/about', name: 'about', component: PageView },
   { path: '/privacy', name: 'privacy', component: PageView },
   { path: '/terms', name: 'terms', component: PageView },
@@ -21,5 +21,14 @@ const routes = [
 ]
 
 const router = createRouter({ history: createWebHistory(), routes, scrollBehavior: () => ({ top: 0 }) })
-router.beforeEach(to => to.meta.private && !sessionStorage.getItem('wynn-auth') ? { name: 'login', query: { redirect: to.fullPath } } : true)
+router.beforeEach(async to => {
+  if (!to.meta.private) return true
+  try {
+    const response = await fetch('/api/auth/me', { credentials: 'include' })
+    const state = response.ok ? await response.json() : { authenticated: false }
+    if (state.authenticated) return true
+  } catch { /* redirect below */ }
+  sessionStorage.removeItem('wynn-auth')
+  return { name: 'login', query: { redirect: to.fullPath } }
+})
 createApp(App).use(router).mount('#app')

@@ -4,8 +4,6 @@ services:
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     command: --innodb-buffer-pool-size=256M --max-connections=40
     volumes: [mysql-data:/var/lib/mysql]
@@ -16,18 +14,21 @@ services:
     depends_on: { mysql: { condition: service_healthy } }
     environment:
       DB_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
-      DB_USERNAME: ${MYSQL_USER}
-      DB_PASSWORD: ${MYSQL_PASSWORD}
+      DB_USERNAME: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       ADMIN_USERNAME: ${ADMIN_USERNAME}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       OSS_ENDPOINT: ${OSS_ENDPOINT}
       OSS_BUCKET: ${OSS_BUCKET}
       OSS_ACCESS_KEY_ID: ${OSS_ACCESS_KEY_ID}
       OSS_ACCESS_KEY_SECRET: ${OSS_ACCESS_KEY_SECRET}
+      QWEN_BASE_URL: ${QWEN_BASE_URL}
       QWEN_API_KEY: ${QWEN_API_KEY}
-      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
+      QWEN_IMAGE_MODEL: ${QWEN_IMAGE_MODEL:-qwen-image-3.0}
       RELAY_BASE_URL: ${RELAY_BASE_URL}
       RELAY_API_KEY: ${RELAY_API_KEY}
+      RELAY_IMAGE_MODEL: ${RELAY_IMAGE_MODEL:-grok-imagine-image-2.0}
+      RELAY_VIDEO_MODEL: ${RELAY_VIDEO_MODEL:-grok-imagine-video-1.5}
     deploy: { resources: { limits: { memory: 700M } } }
   frontend:
     build: ./frontend
