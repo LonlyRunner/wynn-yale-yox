@@ -111,8 +111,8 @@ watch(()=>route.fullPath,()=>{mobileOpen.value=false;notice.value='';playing.val
 
     <section class="home-music">
       <img class="music-yarn" src="/media/cat-items/yarn.png" alt="">
-      <div class="music-cover"><img src="/media/home-gallery/mountain-air.jpg" alt=""><span>WY</span></div>
-      <div class="music-copy"><small>NOW LISTENING</small><h2>{{text('雾岭回声','Echoes over the ridge')}}</h2><p>{{text('来自首页影像的环境音乐。戴上耳机，让风声、雾与远山慢慢展开。','An ambient piece from the opening film. Let wind, mist, and distant ridges unfold.')}}</p><div :class="['waveform',{playing:soundOn}]" aria-hidden="true"><span v-for="n in 24" :key="n" :style="{height:`${12+(n*11)%38}px`,animationDelay:`-${n*40}ms`}"></span></div><div class="music-controls"><button @click="toggleSound"><b>{{soundOn?'Ⅱ':'▶'}}</b>{{soundOn?text('暂停音乐','Pause music'):text('播放音乐','Play music')}}</button><span>00:23 · AMBIENT</span></div></div>
+      <div class="music-cover playlist-cover"><img src="/media/netease-playlist-cover.jpg" :alt="text('网易云歌单“薛”封面','Cover of NetEase playlist Xue')"><span>10 TRACKS</span></div>
+      <div class="music-copy playlist-copy"><small>NETEASE CLOUD MUSIC · PLAYLIST</small><h2>薛</h2><p>{{text('Lonely__Runner 的网易云歌单。点击歌曲名称即可切换播放，会员歌曲的播放权限由网易云账号状态决定。','A NetEase Cloud Music playlist by Lonely__Runner. Select any title to switch tracks; member-only playback follows your NetEase account access.')}}</p><div class="playlist-meta"><span>10 {{text('首歌曲','tracks')}}</span><a href="https://music.163.com/playlist?id=17861500518" target="_blank" rel="noreferrer">{{text('在网易云打开','Open in NetEase')}} ↗</a></div><div class="netease-player"><iframe title="网易云音乐歌单：薛" src="https://music.163.com/outchain/player?type=0&id=17861500518&auto=0&height=430" width="100%" height="450" frameborder="0" loading="lazy" allow="autoplay"></iframe></div></div>
       <img class="music-feather" src="/media/cat-items/feather.png" alt="">
     </section>
 
@@ -185,6 +185,8 @@ watch(()=>route.fullPath,()=>{mobileOpen.value=false;notice.value='';playing.val
 .music-cover:after { content: ""; position: absolute; inset: 42%; border-radius: 50%; background: #091117; border: 2px solid #86caec; box-shadow: 0 0 0 7px rgb(4 10 14 / 75%); }
 .music-cover img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; filter: saturate(.72) contrast(1.05); }
 .music-cover>span { position: absolute; z-index: 1; inset: 0; display: grid; place-content: center; color: white; font: 13px var(--serif); letter-spacing: .18em; }
+.playlist-cover:after { display: none; }
+.playlist-cover>span { inset: auto 26px 25px auto; display: block; padding: 8px 11px; color: #0b171e; background: rgb(255 255 255 / 88%); border-radius: 99px; font: 9px var(--sans); backdrop-filter: blur(8px); }
 .music-copy { position: relative; z-index: 2; }
 .music-copy>small, .home-visuals header small, .legal-page>small { color: var(--sky); font-size: 10px; letter-spacing: .3em; }
 .music-copy h2, .home-visuals h2 { font: 500 clamp(45px, 5vw, 76px)/1 var(--serif); margin: 16px 0 24px; }
@@ -198,6 +200,10 @@ watch(()=>route.fullPath,()=>{mobileOpen.value=false;notice.value='';playing.val
 .music-controls button { display: flex; align-items: center; gap: 12px; padding: 9px 20px 9px 9px; border: 1px solid #6a8390; border-radius: 99px; color: white; background: transparent; cursor: pointer; }
 .music-controls button b { width: 35px; height: 35px; display: grid; place-items: center; border-radius: 50%; color: #0b171e; background: white; }
 .music-controls>span { color: #738791; font-size: 10px; letter-spacing: .18em; }
+.playlist-meta { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin: 24px 0 14px; color: #7f939d; font-size: 10px; letter-spacing: .14em; }
+.playlist-meta a { color: #c4d2d8; border-bottom: 1px solid #607985; padding-bottom: 5px; }
+.netease-player { position: relative; overflow: hidden; min-height: 450px; background: #f5f5f5; border: 1px solid #334852; border-radius: 12px; box-shadow: 0 20px 45px rgb(0 0 0 / 28%); }
+.netease-player iframe { display: block; border: 0; }
 .music-yarn, .music-feather, .visual-mouse { position: absolute; pointer-events: none; filter: drop-shadow(0 18px 24px rgb(0 0 0 / 28%)); }
 .music-yarn { width: 180px; left: -52px; top: 20px; opacity: .42; transform: rotate(18deg); }
 .music-feather { width: 145px; right: -22px; bottom: -24px; opacity: .62; transform: rotate(-25deg); }
@@ -258,6 +264,7 @@ watch(()=>route.fullPath,()=>{mobileOpen.value=false;notice.value='';playing.val
   .music-yarn { width: 120px; }
   .music-feather { display: none; }
   .music-controls { align-items: flex-start; flex-direction: column; }
+  .playlist-meta { align-items: flex-start; flex-direction: column; }
   .home-visuals { padding: 80px 20px 115px; }
   .home-visuals>header { align-items: flex-start; flex-direction: column; }
   .visual-grid { grid-template-columns: 1fr; }
