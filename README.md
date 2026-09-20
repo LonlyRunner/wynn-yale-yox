@@ -57,3 +57,5 @@ docker compose up -d --build
 AI 工作室公开可见。匿名浏览器可生成一张图片和一段视频；站点所有者登录后不限制次数。中转服务使用 OpenAI 兼容的图片与视频接口，千问作为图片回退服务。所有 API Key 均由后端环境变量读取，不进入浏览器代码或 Git。
 
 团子聊天默认使用 `DEEPSEEK_CHAT_MODEL=deepseek-v3.2`。未单独填写 `DEEPSEEK_BASE_URL` 和 `DEEPSEEK_API_KEY` 时，会复用百炼兼容接口与 `QWEN_API_KEY`；模型下拉菜单还提供 `QWEN_CHAT_MODEL=qwen-plus`。如果改用 DeepSeek 官方或其他兼容服务，只需在 `.env` 中填写对应的 DeepSeek 地址、密钥和模型名。
+
+可通过 `CHAT_RELAY_BASE_URL`、`CHAT_RELAY_API_KEY` 和 `CHAT_RELAY_MODELS` 为团子增加独立的 OpenAI 兼容中转服务。模型列表使用逗号分隔；前端会把这些模型加入同一个切换菜单，后端会校验模型必须在配置列表中。

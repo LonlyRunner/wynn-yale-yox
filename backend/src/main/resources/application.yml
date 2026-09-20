@@ -55,3 +55,7 @@ app:
         base-url: ${QWEN_BASE_URL:}
         api-key: ${QWEN_API_KEY:}
         model: ${QWEN_CHAT_MODEL:qwen-plus}
+      relay:
+        base-url: ${CHAT_RELAY_BASE_URL:${RELAY_BASE_URL:}}
+        api-key: ${CHAT_RELAY_API_KEY:}
+        models: ${CHAT_RELAY_MODELS:deepseek-v4-flash,deepseek-v4.1-flash,glm-5.3-flash,glm-5.2,qwen3.8-max}

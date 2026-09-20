@@ -8,6 +8,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -42,6 +43,9 @@ class CatChatService {
     @Value("${app.ai.chat.qwen.base-url:}") String qwenBaseUrl;
     @Value("${app.ai.chat.qwen.api-key:}") String qwenApiKey;
     @Value("${app.ai.chat.qwen.model:qwen-plus}") String qwenModel;
+    @Value("${app.ai.chat.relay.base-url:}") String chatRelayBaseUrl;
+    @Value("${app.ai.chat.relay.api-key:}") String chatRelayApiKey;
+    @Value("${app.ai.chat.relay.models:}") String chatRelayModels;
 
     CatChatService(KnowledgeRepository knowledge, PostRepository posts) {
         this.knowledge = knowledge;
@@ -52,6 +56,9 @@ class CatChatService {
         List<Map<String, String>> result = new ArrayList<>();
         if (configured(effectiveDeepseekBaseUrl(), effectiveDeepseekApiKey())) result.add(Map.of("id", "deepseek", "name", "DeepSeek V3.2", "model", deepseekModel));
         if (configured(qwenBaseUrl, qwenApiKey)) result.add(Map.of("id", "qwen", "name", "通义千问", "model", qwenModel));
+        if (configured(chatRelayBaseUrl, chatRelayApiKey)) for (String model : relayModels()) {
+            result.add(Map.of("id", "relay:" + model, "name", modelName(model), "model", model));
+        }
         return result;
     }
 
@@ -102,6 +109,10 @@ class CatChatService {
     }
 
     private Provider provider(String id) {
+        if (id != null && id.startsWith("relay:") && configured(chatRelayBaseUrl, chatRelayApiKey)) {
+            String model = id.substring("relay:".length());
+            if (relayModels().contains(model)) return new Provider(id, chatRelayBaseUrl, chatRelayApiKey, model);
+        }
         if ("qwen".equalsIgnoreCase(id) && configured(qwenBaseUrl, qwenApiKey)) return new Provider("qwen", qwenBaseUrl, qwenApiKey, qwenModel);
         if (configured(effectiveDeepseekBaseUrl(), effectiveDeepseekApiKey())) return new Provider("deepseek", effectiveDeepseekBaseUrl(), effectiveDeepseekApiKey(), deepseekModel);
         if (configured(qwenBaseUrl, qwenApiKey)) return new Provider("qwen", qwenBaseUrl, qwenApiKey, qwenModel);
@@ -138,6 +149,18 @@ class CatChatService {
     }
 
     private boolean configured(String baseUrl, String apiKey) { return baseUrl != null && !baseUrl.isBlank() && apiKey != null && !apiKey.isBlank(); }
+    private List<String> relayModels() { return Arrays.stream(value(chatRelayModels).split(",")).map(String::trim).filter(model -> !model.isBlank()).distinct().toList(); }
+    private String modelName(String model) {
+        return switch (model) {
+            case "deepseek-v4-pro" -> "DeepSeek V4 Pro · 中转";
+            case "deepseek-v4-flash" -> "DeepSeek V4 Flash · 中转";
+            case "deepseek-v4.1-flash" -> "DeepSeek V4.1 Flash · 中转";
+            case "glm-5.3-flash" -> "GLM 5.3 Flash · 中转";
+            case "glm-5.2" -> "GLM 5.2 · 中转";
+            case "qwen3.8-max" -> "Qwen 3.8 Max · 中转";
+            default -> model + " · 中转";
+        };
+    }
     private String effectiveDeepseekBaseUrl() { return deepseekBaseUrl == null || deepseekBaseUrl.isBlank() ? qwenBaseUrl : deepseekBaseUrl; }
     private String effectiveDeepseekApiKey() { return deepseekApiKey == null || deepseekApiKey.isBlank() ? qwenApiKey : deepseekApiKey; }
     private String apiUrl(String baseUrl, String path) { String base = baseUrl.replaceAll("/+$", ""); return (base.endsWith("/v1") ? base : base + "/v1") + path; }

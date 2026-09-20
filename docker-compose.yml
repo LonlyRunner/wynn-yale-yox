@@ -34,6 +34,9 @@ services:
       DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-}
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
       DEEPSEEK_CHAT_MODEL: ${DEEPSEEK_CHAT_MODEL:-deepseek-v3.2}
+      CHAT_RELAY_BASE_URL: ${CHAT_RELAY_BASE_URL:-}
+      CHAT_RELAY_API_KEY: ${CHAT_RELAY_API_KEY:-}
+      CHAT_RELAY_MODELS: ${CHAT_RELAY_MODELS:-deepseek-v4-flash,deepseek-v4.1-flash,glm-5.3-flash,glm-5.2,qwen3.8-max}
     deploy: { resources: { limits: { memory: 700M } } }
   frontend:
     build: ./frontend
