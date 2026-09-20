@@ -8,9 +8,21 @@ const route = useRoute(), router = useRouter()
 const lang = ref<Lang>((localStorage.getItem('wynn-lang') as Lang) || 'zh')
 const dark = computed(() => ['home','studio','games','game','login'].includes(String(route.name)))
 const mobileOpen = ref(false), catTalk = ref(false), busy = ref(false), notice = ref('')
+const heroVideo = ref<HTMLVideoElement>(), soundOn = ref(false)
 const text = (zh: string, en: string) => lang.value === 'zh' ? zh : en
 const toggleLang = () => { lang.value = lang.value === 'zh' ? 'en' : 'zh'; localStorage.setItem('wynn-lang', lang.value) }
 const catHello = () => { catTalk.value = true; setTimeout(() => catTalk.value = false, 1800) }
+async function toggleSound() {
+  const video = heroVideo.value
+  if (!video) return
+  const next = !soundOn.value
+  video.muted = !next
+  if (next && video.paused) {
+    try { await video.play() }
+    catch { video.muted = true; return }
+  }
+  soundOn.value = next
+}
 const catOffsets = ref<Record<string, { x: number; y: number }>>({})
 const catDragging = ref(false), catDragged = ref(false)
 const catKey = computed(() => String(route.name || 'cat'))
@@ -76,14 +88,14 @@ function stackMove(){const values=board.value.filter(Boolean);for(let i=0;i<valu
 function key(event:KeyboardEvent){if(gameId.value==='flight'){if(event.key==='ArrowLeft')planeX.value=Math.max(8,planeX.value-5);if(event.key==='ArrowRight')planeX.value=Math.min(92,planeX.value+5)}if(gameId.value==='stack'&&event.key.startsWith('Arrow')){event.preventDefault();stackMove()}}
 function startFlight(){playing.value=!playing.value;if(playing.value)timer.value=window.setInterval(()=>score.value++,120);else clearInterval(timer.value)}
 onMounted(()=>addEventListener('keydown',key));onBeforeUnmount(()=>{removeEventListener('keydown',key);clearInterval(timer.value)})
-watch(()=>route.fullPath,()=>{mobileOpen.value=false;notice.value='';playing.value=false;clearInterval(timer.value)})
+watch(()=>route.fullPath,()=>{mobileOpen.value=false;notice.value='';playing.value=false;soundOn.value=false;clearInterval(timer.value)})
 </script>
 
 <template>
 <main :class="['site',{dark}]">
   <header v-if="route.name!=='admin'" class="topbar"><RouterLink class="brand" to="/"><img src="/media/wynn-mark.png"><span>WYNN YALE YOX</span></RouterLink><nav :class="{open:mobileOpen}"><RouterLink to="/">{{text('首页','Home')}}</RouterLink><RouterLink to="/blog">{{text('博客','Blog')}}</RouterLink><RouterLink to="/gallery">{{text('影像','Gallery')}}</RouterLink><RouterLink to="/studio">{{text('AI 创作','AI Studio')}}</RouterLink><RouterLink to="/games">{{text('游戏','Games')}}</RouterLink><RouterLink to="/about">{{text('关于','About')}}</RouterLink></nav><div class="nav-actions"><button class="pill" @click="toggleLang">{{lang==='zh'?'中 / EN':'EN / 中'}}</button><button class="menu" @click="mobileOpen=!mobileOpen">☰</button></div></header>
 
-  <section v-if="route.name==='home'" class="hero"><video autoplay muted loop playsinline poster="/media/hero.jpg"><source src="/media/hero.mp4" type="video/mp4"></video><div class="shade"></div><div class="hero-copy"><small>PERSONAL DIGITAL GARDEN · 2026</small><h1>Wynn<br>Yale Yox</h1><i></i><p>{{text('随性而行，无拘无定。','Move freely, remain undefined.')}}</p></div><button :class="['cat home-cat',{dragging:catDragging}]" :style="catStyle" :aria-label="text('拖动小猫','Drag kitten')" @pointerdown="startCatDrag" @pointermove="moveCat" @pointerup="endCatDrag" @pointercancel="endCatDrag" @click="catClick"><img src="/media/fluffy-kitten.png" draggable="false"></button><span v-if="catTalk" class="bubble" :style="catStyle">{{text('喵～欢迎回来 ✦','Meow — welcome back ✦')}}</span><span class="scroll">—　{{text('向下探索','Explore')}}</span></section>
+  <section v-if="route.name==='home'" class="hero"><video ref="heroVideo" autoplay :muted="!soundOn" loop playsinline poster="/media/hero.jpg"><source src="/media/hero.mp4" type="video/mp4"></video><div class="shade"></div><div class="hero-copy"><small>PERSONAL DIGITAL GARDEN · 2026</small><h1>Wynn<br>Yale Yox</h1><i></i><p>{{text('随性而行，无拘无定。','Move freely, remain undefined.')}}</p></div><button class="sound-toggle" :class="{on:soundOn}" :aria-label="soundOn?text('关闭音乐','Mute music'):text('打开音乐','Play music')" :title="soundOn?text('关闭音乐','Mute music'):text('打开音乐','Play music')" @click="toggleSound"><svg v-if="soundOn" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg><svg v-else viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="m15 9 6 6M21 9l-6 6"/></svg></button><button :class="['cat home-cat',{dragging:catDragging}]" :style="catStyle" :aria-label="text('拖动小猫','Drag kitten')" @pointerdown="startCatDrag" @pointermove="moveCat" @pointerup="endCatDrag" @pointercancel="endCatDrag" @click="catClick"><img src="/media/fluffy-kitten.png" draggable="false"></button><span v-if="catTalk" class="bubble" :style="catStyle">{{text('喵～欢迎回来 ✦','Meow — welcome back ✦')}}</span><span class="scroll">—　{{text('向下探索','Explore')}}</span></section>
 
   <template v-else-if="route.name==='blog'"><section class="page-head"><small>NOTES & EXPERIMENTS</small><h1>{{text('技术与思考','Technology & Thoughts')}}</h1><p>{{text('记录 Java、AI 工程与产品实践，也记录那些仍在形成中的判断。','Notes on Java, AI engineering, products, and ideas still taking shape.')}}</p></section><section class="blog-grid"><RouterLink class="feature" :to="`/blog/${posts[0].slug}`"><div><small>{{posts[0].tag}}</small><h2>{{text(posts[0].zh,posts[0].en)}}</h2><span>{{posts[0].date}} · 12 MIN</span></div></RouterLink><div class="post-list"><RouterLink v-for="(post,i) in posts.slice(1)" :key="post.slug" class="post" :to="`/blog/${post.slug}`"><div><small>{{post.tag}}</small><h2>{{text(post.zh,post.en)}}</h2><span>{{post.date}}</span></div><b>0{{i+1}}</b></RouterLink></div></section></template>
 
@@ -116,4 +128,25 @@ watch(()=>route.fullPath,()=>{mobileOpen.value=false;notice.value='';playing.val
 .cat.dragging { cursor: grabbing; }
 .cat img { pointer-events: none; }
 .bubble { pointer-events: none; }
+.sound-toggle {
+  position: absolute;
+  z-index: 3;
+  top: 24px;
+  right: 5vw;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  color: white;
+  background: rgb(6 17 23 / 38%);
+  border: 1px solid rgb(255 255 255 / 45%);
+  border-radius: 50%;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  transition: background .2s ease, transform .2s ease;
+}
+.sound-toggle:hover { transform: scale(1.06); background: rgb(6 17 23 / 58%); }
+.sound-toggle.on { background: rgb(8 103 170 / 68%); }
+.sound-toggle svg { width: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+@media(max-width:760px) { .sound-toggle { top: 16px; right: 18px; width: 40px; height: 40px; } }
 </style>
