@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -504,23 +505,13 @@ class SeedData {
     @Bean
     CommandLineRunner seed(PostRepository posts, KnowledgeRepository knowledge) {
         return args -> {
-            saveSeed(posts, "reliable-agent", "从一次对话到一个可靠的 Agent", "From a Conversation to a Reliable Agent", "AI ENGINEERING", "Agent,Spring AI",
-                "可靠不是让模型更聪明，而是让系统知道什么时候继续、什么时候停下来。", "Reliability comes from clear state boundaries, recovery, and evidence.",
-                "# 从状态开始设计\n\n一个流畅的演示距离一个可长期运行的 Agent 仍有很远。真正困难的部分通常不是提示词，而是围绕模型建立清晰的状态边界。\n\n> 让每一步都有证据，让每一次失败都能回到可恢复的位置。",
-                "# Start with state\n\nA polished demo is still far from an agent that can run reliably. The hard part is the boundary around every state.");
-            saveSeed(posts, "model-routing", "多模型路由的简单实现", "A Simple Multi-model Router", "SPRING AI", "Spring AI,Routing",
-                "用统一接口连接不同模型服务。", "Connect multiple model providers behind one stable interface.",
-                "# 多模型路由\n\n把厂商差异收敛在服务层，页面只关心创作类型、参数和任务状态。主服务不可用时，图片任务可以自动切换到备用模型。",
-                "# Multi-model routing\n\nKeep provider differences in the service layer. The UI only needs generation type, options, and job state.");
-            saveSeed(posts, "context", "并发任务中的上下文传递", "Context Propagation in Concurrent Tasks", "JAVA", "Java,Concurrency",
-                "在线程切换中保留必要上下文。", "Keep the right context across asynchronous boundaries.",
-                "# 上下文传递\n\n异步任务只携带真正需要的数据，并在任务结束时及时清理，能减少线程复用带来的数据串扰。",
-                "# Context propagation\n\nPass only the data an asynchronous task needs and clear it when the task completes.");
-            var interviewPosts = new ObjectMapper().readValue(
+            var seedPosts = new ObjectMapper().readValue(
                 new ClassPathResource("blogs/interview-posts.json").getInputStream(),
                 new TypeReference<List<SeedPost>>() {});
-            interviewPosts.forEach(post -> saveSeed(posts, post.slug(), post.titleZh(), post.titleEn(), post.category(), post.tags(),
-                post.summaryZh(), post.summaryEn(), post.contentZh(), post.contentEn()));
+            for (SeedPost post : seedPosts) {
+                saveSeed(posts, post.slug(), post.titleZh(), post.titleEn(), post.category(), post.tags(),
+                    post.summaryZh(), post.summaryEn(), seedContent(post.contentZh()), post.contentEn());
+            }
             saveKnowledge(knowledge, "关于 Wynn", "个人资料,站主", "KNOWLEDGE", "Wynn 的公开昵称是 Lonely__Runner，常用英文签名是 Wynn Yale Yox，所在城市是洛阳。他是一名全栈开发者与 AI 应用实践者，关注 Java、Spring、Spring AI、Vue、MySQL、RAG 与 Agent 工程，也喜欢影像创作和轻量小游戏。网站理念是“随性而行，无拘无定”。");
             saveKnowledge(knowledge, "团子的聊天方式", "人格,小猫,语气", "PERSONA", "团子是网站里的毛茸茸小猫助手。它温柔、机灵、尊重事实，回答技术问题时清晰直接，聊生活与创作时轻松友好。它可以适度使用“喵”和猫爪符号，但不会为了可爱牺牲信息质量，也不会假装知道知识库中没有的 Wynn 私人经历。");
         };
@@ -533,6 +524,15 @@ class SeedData {
         post.summaryZh = summaryZh; post.summaryEn = summaryEn; post.contentZh = contentZh; post.contentEn = contentEn;
         post.published = true; post.updatedAt = Instant.now();
         posts.save(post);
+    }
+
+    private String seedContent(String value) {
+        if (value == null || !value.startsWith("classpath:")) return value;
+        try {
+            return new ClassPathResource(value.substring("classpath:".length())).getContentAsString(StandardCharsets.UTF_8);
+        } catch (IOException error) {
+            throw new IllegalStateException("Unable to read blog article: " + value, error);
+        }
     }
 
     private void saveKnowledge(KnowledgeRepository knowledge, String title, String tags, String kind, String content) {
