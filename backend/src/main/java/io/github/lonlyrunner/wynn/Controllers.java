@@ -162,7 +162,7 @@ class PublicController {
         MediaItem item = media.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         try {
             return ResponseEntity.ok()
-                .cacheControl(CacheControl.maxAge(Duration.ofDays(7)).cachePublic())
+                .cacheControl(CacheControl.maxAge(Duration.ofDays(30)).cachePublic())
                 .contentType(MediaType.IMAGE_JPEG)
                 .body(previews.preview(item, Math.max(1, Math.min(width, 1200))));
         } catch (RuntimeException error) {

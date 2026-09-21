@@ -6,6 +6,9 @@ import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -19,26 +22,65 @@ import org.springframework.stereotype.Service;
 @Service
 class ImagePreviewService {
     private final OssService oss;
+    private final Path diskCache = Path.of("data", "preview-cache");
+    private final Object[] locks = new Object[32];
     private final Map<String, byte[]> memoryCache = new LinkedHashMap<>(96, .75f, true) {
         @Override protected boolean removeEldestEntry(Map.Entry<String, byte[]> eldest) { return size() > 96; }
     };
 
-    ImagePreviewService(OssService oss) { this.oss = oss; }
+    ImagePreviewService(OssService oss) {
+        this.oss = oss;
+        for (int index = 0; index < locks.length; index++) locks[index] = new Object();
+        try {
+            Files.createDirectories(diskCache);
+        } catch (IOException error) {
+            throw new IllegalStateException("Unable to create image preview cache", error);
+        }
+    }
 
-    synchronized byte[] preview(MediaItem item, int requestedWidth) {
+    byte[] preview(MediaItem item, int requestedWidth) {
         int width = requestedWidth <= 480 ? 480 : requestedWidth <= 960 ? 960 : 1200;
         String key = "previews/media-" + item.id + "-" + Integer.toUnsignedString(item.objectKey.hashCode()) + "-" + width + ".jpg";
-        byte[] cached = memoryCache.get(key);
+        byte[] cached = cached(key);
         if (cached != null) return cached;
-        if (oss.exists(key)) {
-            byte[] stored = oss.get(key);
-            memoryCache.put(key, stored);
+
+        Object lock = locks[Math.floorMod(key.hashCode(), locks.length)];
+        synchronized (lock) {
+            cached = cached(key);
+            if (cached != null) return cached;
+
+            Path file = diskCache.resolve(key.substring("previews/".length()));
+            byte[] stored = readDisk(file);
+            if (stored == null) {
+                if (oss.exists(key)) {
+                    stored = oss.get(key);
+                } else {
+                    stored = resize(oss.get(item.objectKey), width);
+                    oss.put(key, stored, "image/jpeg");
+                }
+                writeDisk(file, stored);
+            }
+            cache(key, stored);
             return stored;
         }
-        byte[] preview = resize(oss.get(item.objectKey), width);
-        oss.put(key, preview, "image/jpeg");
-        memoryCache.put(key, preview);
-        return preview;
+    }
+
+    private byte[] cached(String key) {
+        synchronized (memoryCache) { return memoryCache.get(key); }
+    }
+
+    private void cache(String key, byte[] bytes) {
+        synchronized (memoryCache) { memoryCache.put(key, bytes); }
+    }
+
+    private byte[] readDisk(Path file) {
+        try { return Files.isRegularFile(file) ? Files.readAllBytes(file) : null; }
+        catch (IOException ignored) { return null; }
+    }
+
+    private void writeDisk(Path file, byte[] bytes) {
+        try { Files.write(file, bytes); }
+        catch (IOException ignored) { }
     }
 
     private byte[] resize(byte[] sourceBytes, int maxWidth) {
