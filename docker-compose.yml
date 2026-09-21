@@ -42,7 +42,9 @@ services:
       CHAT_SECONDARY_RELAY_MODELS: ${CHAT_SECONDARY_RELAY_MODELS:-gpt-5.5,gpt-5.6,gpt-5.6-sol,gpt-5.6-terra,gpt-6-astra}
     deploy: { resources: { limits: { memory: 700M } } }
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.runtime
     restart: unless-stopped
     depends_on: [backend]
     ports: ["80:80"]

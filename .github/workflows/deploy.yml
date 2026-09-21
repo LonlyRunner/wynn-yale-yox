@@ -1,0 +1,96 @@
+name: 构建并部署个人网站
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wynn-yale-yox-production
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: 云端构建
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: 构建后端
+        working-directory: backend
+        run: mvn -B clean package -DskipTests
+      - name: 构建前端
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+      - name: 组装部署包
+        run: |
+          set -euo pipefail
+          mkdir -p .deploy/backend/target .deploy/frontend
+          cp docker-compose.yml .deploy/
+          cp backend/Dockerfile .deploy/backend/
+          cp backend/target/wynn-backend-0.1.0.jar .deploy/backend/target/
+          cp frontend/Dockerfile.runtime frontend/nginx.conf .deploy/frontend/
+          cp -R frontend/dist .deploy/frontend/
+          printf '%s' "$DEPLOY_ENV" > .deploy/.env
+          test -s .deploy/.env
+          tar -C .deploy -czf ../deployment.tar.gz .
+        env:
+          DEPLOY_ENV: ${{ secrets.DEPLOY_ENV }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deployment
+          path: deployment.tar.gz
+          if-no-files-found: error
+          retention-days: 3
+
+  deploy:
+    name: 发布到阿里云
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: deployment
+      - name: 配置 SSH 密钥
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s' "$DEPLOY_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+        env:
+          DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+      - name: 上传部署包
+        run: |
+          scp -o StrictHostKeyChecking=accept-new deployment.tar.gz \
+            "${DEPLOY_USER}@${DEPLOY_HOST}:/tmp/wynn-yale-yox-${GITHUB_SHA}.tar.gz"
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      - name: 重启服务并检查健康状态
+        run: |
+          ssh -o StrictHostKeyChecking=accept-new "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "set -e; \
+             mkdir -p /opt/wynn-yale-yox; \
+             tar -xzf /tmp/wynn-yale-yox-${GITHUB_SHA}.tar.gz -C /opt/wynn-yale-yox; \
+             rm -f /tmp/wynn-yale-yox-${GITHUB_SHA}.tar.gz; \
+             cd /opt/wynn-yale-yox; \
+             docker compose --env-file .env up -d --build --remove-orphans; \
+             for attempt in 1 2 3 4 5 6; do curl -fsS http://127.0.0.1/api/public/profile && exit 0; sleep 5; done; \
+             exit 1"
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
