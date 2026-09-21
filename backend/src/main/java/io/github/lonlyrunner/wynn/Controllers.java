@@ -1,5 +1,7 @@
 package io.github.lonlyrunner.wynn;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -19,6 +21,7 @@ import org.apache.tika.Tika;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -468,6 +471,9 @@ class AdminController {
 
 @Configuration
 class SeedData {
+    record SeedPost(String slug, String titleZh, String titleEn, String category, String tags,
+                    String summaryZh, String summaryEn, String contentZh, String contentEn) {}
+
     @Bean
     CommandLineRunner seed(PostRepository posts, KnowledgeRepository knowledge) {
         return args -> {
@@ -483,6 +489,11 @@ class SeedData {
                 "在线程切换中保留必要上下文。", "Keep the right context across asynchronous boundaries.",
                 "# 上下文传递\n\n异步任务只携带真正需要的数据，并在任务结束时及时清理，能减少线程复用带来的数据串扰。",
                 "# Context propagation\n\nPass only the data an asynchronous task needs and clear it when the task completes.");
+            var interviewPosts = new ObjectMapper().readValue(
+                new ClassPathResource("blogs/interview-posts.json").getInputStream(),
+                new TypeReference<List<SeedPost>>() {});
+            interviewPosts.forEach(post -> saveSeed(posts, post.slug(), post.titleZh(), post.titleEn(), post.category(), post.tags(),
+                post.summaryZh(), post.summaryEn(), post.contentZh(), post.contentEn()));
             saveKnowledge(knowledge, "关于 Wynn", "个人资料,站主", "KNOWLEDGE", "Wynn 的公开昵称是 Lonely__Runner，常用英文签名是 Wynn Yale Yox，所在城市是洛阳。他是一名全栈开发者与 AI 应用实践者，关注 Java、Spring、Spring AI、Vue、MySQL、RAG 与 Agent 工程，也喜欢影像创作和轻量小游戏。网站理念是“随性而行，无拘无定”。");
             saveKnowledge(knowledge, "团子的聊天方式", "人格,小猫,语气", "PERSONA", "团子是网站里的毛茸茸小猫助手。它温柔、机灵、尊重事实，回答技术问题时清晰直接，聊生活与创作时轻松友好。它可以适度使用“喵”和猫爪符号，但不会为了可爱牺牲信息质量，也不会假装知道知识库中没有的 Wynn 私人经历。");
         };
