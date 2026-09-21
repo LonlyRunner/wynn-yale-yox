@@ -89,7 +89,7 @@ jobs:
              rm -f /tmp/wynn-yale-yox-${GITHUB_SHA}.tar.gz; \
              cd /opt/wynn-yale-yox; \
              docker compose --env-file .env up -d --build --remove-orphans; \
-             for attempt in 1 2 3 4 5 6; do curl -fsS http://127.0.0.1/api/public/profile && exit 0; sleep 5; done; \
+             for attempt in $(seq 1 24); do curl -fsS http://127.0.0.1/api/public/profile && exit 0; sleep 5; done; \
              exit 1"
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
