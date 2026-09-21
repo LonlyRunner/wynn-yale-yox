@@ -44,6 +44,7 @@ record CommentRequest(@NotBlank @Size(max = 80) String author, @Size(max = 160) 
 record PostRequest(@NotBlank String slug, @NotBlank String titleZh, @NotBlank String titleEn, String category, String tags, String summaryZh, String summaryEn, String contentZh, String contentEn, String coverObjectKey, boolean published) {}
 record MediaRequest(@NotBlank String objectKey, String titleZh, String titleEn, String mediaType, String promptZh, String promptEn, int sortOrder) {}
 record ChatRequest(String model, @NotBlank @Size(max = 2000) String message, List<ChatTurn> history) {}
+record DrawingRequest(String model) {}
 record KnowledgeRequest(@NotBlank @Size(max = 200) String title, @Size(max = 500) String tags, String kind, @NotBlank @Size(max = 30000) String content, boolean enabled) {}
 
 @RestController
@@ -196,6 +197,15 @@ class ChatController {
             return chat.chat(request.model(), request.message(), request.history() == null ? List.of() : request.history());
         } catch (IllegalStateException error) {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, error.getMessage(), error);
+        }
+    }
+
+    @PostMapping("/drawings/pelican")
+    Object drawPelican(@RequestBody DrawingRequest request) {
+        try {
+            return chat.drawPelican(request.model());
+        } catch (IllegalStateException error) {
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(Map.of("error", error.getMessage()));
         }
     }
 }

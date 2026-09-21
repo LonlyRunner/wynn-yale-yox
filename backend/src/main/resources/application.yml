@@ -59,3 +59,7 @@ app:
         base-url: ${CHAT_RELAY_BASE_URL:${RELAY_BASE_URL:}}
         api-key: ${CHAT_RELAY_API_KEY:}
         models: ${CHAT_RELAY_MODELS:deepseek-v4-flash,deepseek-v4.1-flash,glm-5.3-flash,glm-5.2,qwen3.8-max}
+      secondary-relay:
+        base-url: ${CHAT_SECONDARY_RELAY_BASE_URL:${CHAT_RELAY_BASE_URL:${RELAY_BASE_URL:}}}
+        api-key: ${CHAT_SECONDARY_RELAY_API_KEY:}
+        models: ${CHAT_SECONDARY_RELAY_MODELS:gpt-5.5,gpt-5.6,gpt-5.6-sol,gpt-5.6-terra,gpt-6-astra}

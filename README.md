@@ -59,3 +59,7 @@ AI 工作室公开可见。匿名浏览器可生成一张图片和一段视频�
 团子聊天默认使用 `DEEPSEEK_CHAT_MODEL=deepseek-v3.2`。未单独填写 `DEEPSEEK_BASE_URL` 和 `DEEPSEEK_API_KEY` 时，会复用百炼兼容接口与 `QWEN_API_KEY`；模型下拉菜单还提供 `QWEN_CHAT_MODEL=qwen-plus`。如果改用 DeepSeek 官方或其他兼容服务，只需在 `.env` 中填写对应的 DeepSeek 地址、密钥和模型名。
 
 可通过 `CHAT_RELAY_BASE_URL`、`CHAT_RELAY_API_KEY` 和 `CHAT_RELAY_MODELS` 为团子增加独立的 OpenAI 兼容中转服务。模型列表使用逗号分隔；前端会把这些模型加入同一个切换菜单，后端会校验模型必须在配置列表中。
+
+如需接入第二枚中转密钥，可配置 `CHAT_SECONDARY_RELAY_BASE_URL`、`CHAT_SECONDARY_RELAY_API_KEY` 和 `CHAT_SECONDARY_RELAY_MODELS`。两条线路的模型会合并进团子与鹈鹕小游戏的同一份菜单。
+
+鹈鹕小游戏复用团子的同一份模型列表。选择模型后，后端请求该模型生成 SVG，校验 XML、危险元素和绘图元素数量后再返回；成功结果会按模型缓存到本次服务进程中。
