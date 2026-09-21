@@ -8,46 +8,15 @@ services:
     command: --innodb-buffer-pool-size=256M --max-connections=40
     volumes: [mysql-data:/var/lib/mysql]
     healthcheck: { test: ["CMD","mysqladmin","ping","-h","localhost"], interval: 10s, timeout: 5s, retries: 10 }
-  backend:
-    build: ./backend
-    restart: unless-stopped
-    depends_on: { mysql: { condition: service_healthy } }
-    environment:
-      DB_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
-      DB_USERNAME: root
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      ADMIN_USERNAME: ${ADMIN_USERNAME}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
-      OSS_ENDPOINT: ${OSS_ENDPOINT}
-      OSS_BUCKET: ${OSS_BUCKET}
-      OSS_ACCESS_KEY_ID: ${OSS_ACCESS_KEY_ID}
-      OSS_ACCESS_KEY_SECRET: ${OSS_ACCESS_KEY_SECRET}
-      QWEN_BASE_URL: ${QWEN_BASE_URL}
-      QWEN_API_KEY: ${QWEN_API_KEY}
-      QWEN_IMAGE_MODEL: ${QWEN_IMAGE_MODEL:-qwen-image-3.0}
-      QWEN_VISION_MODEL: ${QWEN_VISION_MODEL:-qwen3-vl-flash}
-      QWEN_CHAT_MODEL: ${QWEN_CHAT_MODEL:-qwen-plus}
-      RELAY_BASE_URL: ${RELAY_BASE_URL}
-      RELAY_API_KEY: ${RELAY_API_KEY}
-      RELAY_IMAGE_MODEL: ${RELAY_IMAGE_MODEL:-grok-imagine-image-2.0}
-      RELAY_VIDEO_MODEL: ${RELAY_VIDEO_MODEL:-grok-imagine-video-1.5}
-      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-}
-      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
-      DEEPSEEK_CHAT_MODEL: ${DEEPSEEK_CHAT_MODEL:-deepseek-v3.2}
-      CHAT_RELAY_BASE_URL: ${CHAT_RELAY_BASE_URL:-}
-      CHAT_RELAY_API_KEY: ${CHAT_RELAY_API_KEY:-}
-      CHAT_RELAY_MODELS: ${CHAT_RELAY_MODELS:-deepseek-v4-flash,deepseek-v4.1-flash,glm-5.3-flash,glm-5.2,qwen3.8-max}
-      CHAT_SECONDARY_RELAY_BASE_URL: ${CHAT_SECONDARY_RELAY_BASE_URL:-}
-      CHAT_SECONDARY_RELAY_API_KEY: ${CHAT_SECONDARY_RELAY_API_KEY:-}
-      CHAT_SECONDARY_RELAY_MODELS: ${CHAT_SECONDARY_RELAY_MODELS:-gpt-5.5,gpt-5.6,gpt-5.6-sol,gpt-5.6-terra,gpt-6-astra}
-    deploy: { resources: { limits: { memory: 700M } } }
+    ports: ["127.0.0.1:3306:3306"]
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile.runtime
     restart: unless-stopped
-    depends_on: [backend]
+    depends_on: [mysql]
     ports: ["80:80"]
+    extra_hosts: ["host.docker.internal:host-gateway"]
     deploy: { resources: { limits: { memory: 96M } } }
 volumes:
   mysql-data:

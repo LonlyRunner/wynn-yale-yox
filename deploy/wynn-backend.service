@@ -1,0 +1,16 @@
+[Unit]
+Description=Wynn Yale Yox Spring Boot backend
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/wynn-yale-yox/backend
+EnvironmentFile=/opt/wynn-yale-yox/.env
+ExecStart=/usr/bin/java -Xms128m -Xmx512m -XX:+UseSerialGC -jar /opt/wynn-yale-yox/backend/target/wynn-backend-0.1.0.jar
+Restart=always
+RestartSec=8
+
+[Install]
+WantedBy=multi-user.target
