@@ -47,10 +47,11 @@ jobs:
           cp deploy/wynn-backend.service .deploy/systemd/
           printf '%s' "$DEPLOY_ENV" > .deploy/.env
           test -s .deploy/.env
-          set -a
-          . .deploy/.env
-          set +a
-          printf '\nDB_URL=jdbc:mysql://127.0.0.1:3306/%s?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai\nDB_USERNAME=root\nDB_PASSWORD=%s\n' "$MYSQL_DATABASE" "$MYSQL_ROOT_PASSWORD" >> .deploy/.env
+          mysql_database=$(grep -m1 '^MYSQL_DATABASE=' .deploy/.env | cut -d= -f2- | tr -d '\r')
+          mysql_root_password=$(grep -m1 '^MYSQL_ROOT_PASSWORD=' .deploy/.env | cut -d= -f2- | tr -d '\r')
+          test -n "$mysql_database"
+          test -n "$mysql_root_password"
+          printf '\nDB_URL=jdbc:mysql://127.0.0.1:3306/%s?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai\nDB_USERNAME=root\nDB_PASSWORD=%s\n' "$mysql_database" "$mysql_root_password" >> .deploy/.env
           tar -czf deployment.tar.gz -C .deploy .
         env:
           DEPLOY_ENV: ${{ secrets.DEPLOY_ENV }}
