@@ -8,6 +8,7 @@ const routes = [
   { path: '/', name: 'home', component: PageView },
   { path: '/blog', name: 'blog', component: PageView },
   { path: '/blog/:slug', name: 'article', component: PageView },
+  { path: '/journal', name: 'journal', component: PageView },
   { path: '/gallery', name: 'gallery', component: PageView },
   { path: '/studio', name: 'studio', component: PageView },
   { path: '/about', name: 'about', component: PageView },

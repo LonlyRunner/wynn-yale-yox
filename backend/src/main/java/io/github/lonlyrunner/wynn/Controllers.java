@@ -49,6 +49,7 @@ record MediaRequest(@NotBlank String objectKey, String titleZh, String titleEn, 
 record ChatRequest(String model, @NotBlank @Size(max = 2000) String message, List<ChatTurn> history) {}
 record DrawingRequest(String model) {}
 record KnowledgeRequest(@NotBlank @Size(max = 200) String title, @Size(max = 500) String tags, String kind, @NotBlank @Size(max = 30000) String content, boolean enabled) {}
+record JournalRequest(@NotBlank @Size(max = 200) String titleZh, @Size(max = 200) String titleEn, @NotBlank @Size(max = 30000) String contentZh, @Size(max = 30000) String contentEn, @Size(max = 40) String mood, java.time.LocalDate happenedAt, boolean published) {}
 
 @RestController
 @RequestMapping("/api/auth")
@@ -94,13 +95,15 @@ class PublicController {
     private final PostRepository posts;
     private final CommentRepository comments;
     private final MediaRepository media;
+    private final JournalRepository journals;
     private final OssService oss;
     private final ImagePreviewService previews;
 
-    PublicController(PostRepository posts, CommentRepository comments, MediaRepository media, OssService oss, ImagePreviewService previews) {
+    PublicController(PostRepository posts, CommentRepository comments, MediaRepository media, JournalRepository journals, OssService oss, ImagePreviewService previews) {
         this.posts = posts;
         this.comments = comments;
         this.media = media;
+        this.journals = journals;
         this.oss = oss;
         this.previews = previews;
     }
@@ -149,6 +152,11 @@ class PublicController {
         return media.findAllByOrderBySortOrderAscCreatedAtDesc().stream().map(this::mediaDto).toList();
     }
 
+    @GetMapping("/journals")
+    Object journals() {
+        return journals.findByPublishedTrueOrderByHappenedAtDescCreatedAtDesc().stream().map(this::journalDto).toList();
+    }
+
     @GetMapping(value = "/media/{id}/preview", produces = MediaType.IMAGE_JPEG_VALUE)
     ResponseEntity<byte[]> mediaPreview(@PathVariable Long id, @RequestParam(defaultValue = "960") int width) {
         MediaItem item = media.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
@@ -191,6 +199,14 @@ class PublicController {
         dto.put("id", item.id); dto.put("objectKey", item.objectKey); dto.put("titleZh", value(item.titleZh)); dto.put("titleEn", value(item.titleEn));
         dto.put("mediaType", value(item.mediaType)); dto.put("promptZh", value(item.promptZh)); dto.put("promptEn", value(item.promptEn));
         dto.put("sortOrder", item.sortOrder); dto.put("url", signed(item.objectKey));
+        return dto;
+    }
+
+    private Map<String, Object> journalDto(JournalEntry item) {
+        Map<String, Object> dto = new LinkedHashMap<>();
+        dto.put("id", item.id); dto.put("titleZh", value(item.titleZh)); dto.put("titleEn", value(item.titleEn));
+        dto.put("contentZh", value(item.contentZh)); dto.put("contentEn", value(item.contentEn)); dto.put("mood", value(item.mood));
+        dto.put("happenedAt", item.happenedAt); dto.put("createdAt", item.createdAt);
         return dto;
     }
 
@@ -319,12 +335,13 @@ class AdminController {
     private final CommentRepository comments;
     private final MediaRepository media;
     private final KnowledgeRepository knowledge;
+    private final JournalRepository journals;
     private final OssService oss;
     private final AiGenerationService generator;
     private final Tika tika = new Tika();
 
-    AdminController(AiJobRepository jobs, PostRepository posts, CommentRepository comments, MediaRepository media, KnowledgeRepository knowledge, OssService oss, AiGenerationService generator) {
-        this.jobs = jobs; this.posts = posts; this.comments = comments; this.media = media; this.knowledge = knowledge; this.oss = oss; this.generator = generator;
+    AdminController(AiJobRepository jobs, PostRepository posts, CommentRepository comments, MediaRepository media, KnowledgeRepository knowledge, JournalRepository journals, OssService oss, AiGenerationService generator) {
+        this.jobs = jobs; this.posts = posts; this.comments = comments; this.media = media; this.knowledge = knowledge; this.journals = journals; this.oss = oss; this.generator = generator;
     }
 
     @GetMapping("/ai/jobs")
@@ -445,6 +462,21 @@ class AdminController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void deleteKnowledge(@PathVariable Long id) { knowledge.deleteById(id); }
 
+    @GetMapping("/journals")
+    Object journals() { return journals.findAllByOrderByHappenedAtDescCreatedAtDesc().stream().map(this::journalDto).toList(); }
+
+    @PostMapping("/journals")
+    Object createJournal(@Valid @RequestBody JournalRequest request) { return journalDto(saveJournal(new JournalEntry(), request)); }
+
+    @PutMapping("/journals/{id}")
+    Object updateJournal(@PathVariable Long id, @Valid @RequestBody JournalRequest request) {
+        return journalDto(saveJournal(journals.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND)), request));
+    }
+
+    @DeleteMapping("/journals/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void deleteJournal(@PathVariable Long id) { journals.deleteById(id); }
+
     @PostMapping(value = "/knowledge/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     Object importKnowledge(@RequestPart("file") MultipartFile file) { return importDocument(file); }
 
@@ -481,6 +513,20 @@ class AdminController {
         Map<String, Object> dto = new LinkedHashMap<>();
         dto.put("id", item.id); dto.put("title", item.title); dto.put("tags", item.tags == null ? "" : item.tags); dto.put("kind", item.kind == null ? "KNOWLEDGE" : item.kind); dto.put("content", item.content);
         dto.put("enabled", item.enabled); dto.put("updatedAt", item.updatedAt);
+        return dto;
+    }
+
+    private JournalEntry saveJournal(JournalEntry item, JournalRequest request) {
+        item.titleZh = request.titleZh().trim(); item.titleEn = Objects.requireNonNullElse(request.titleEn(), "");
+        item.contentZh = request.contentZh().trim(); item.contentEn = Objects.requireNonNullElse(request.contentEn(), ""); item.mood = Objects.requireNonNullElse(request.mood(), "");
+        item.happenedAt = request.happenedAt() == null ? java.time.LocalDate.now() : request.happenedAt(); item.published = request.published(); item.updatedAt = Instant.now();
+        return journals.save(item);
+    }
+
+    private Map<String, Object> journalDto(JournalEntry item) {
+        Map<String, Object> dto = new LinkedHashMap<>();
+        dto.put("id", item.id); dto.put("titleZh", item.titleZh); dto.put("titleEn", Objects.requireNonNullElse(item.titleEn, "")); dto.put("contentZh", item.contentZh); dto.put("contentEn", Objects.requireNonNullElse(item.contentEn, ""));
+        dto.put("mood", Objects.requireNonNullElse(item.mood, "")); dto.put("happenedAt", item.happenedAt); dto.put("published", item.published); dto.put("createdAt", item.createdAt); dto.put("updatedAt", item.updatedAt);
         return dto;
     }
 

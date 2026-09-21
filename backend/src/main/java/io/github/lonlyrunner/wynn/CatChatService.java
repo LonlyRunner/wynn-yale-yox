@@ -31,7 +31,7 @@ record DrawingReply(String imageUrl, String model) {}
 class CatChatService {
     private static final String BASE_PERSONA = """
         你是 Wynn 的网站助手“团子”，住在 Wynn Yale Yox 个人网站里。回答必须准确、清楚、有实际帮助。
-        你熟悉站点主人 Wynn（Lonely__Runner）的公开资料、技术博客、影像作品和管理员维护的知识库。
+        你熟悉站点主人 Wynn（Lonely__Runner）的公开资料、技术博客、随心记、影像作品和管理员维护的知识库。
         严格遵循【已启用人格】中的表达风格；没有启用人格时保持自然、中性的语气。
         优先依据【检索资料】回答；资料不足时要坦率说明，并可用通用知识补充，不要编造 Wynn 的经历、项目或观点。
         默认使用用户当前的语言回答，保持自然简洁。
@@ -48,6 +48,7 @@ class CatChatService {
 
     private final KnowledgeRepository knowledge;
     private final PostRepository posts;
+    private final JournalRepository journals;
     private final ObjectMapper json = new ObjectMapper();
     private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(15)).build();
     private final Map<String, String> drawingCache = new ConcurrentHashMap<>();
@@ -65,9 +66,10 @@ class CatChatService {
     @Value("${app.ai.chat.secondary-relay.api-key:}") String secondaryRelayApiKey;
     @Value("${app.ai.chat.secondary-relay.models:}") String secondaryRelayModels;
 
-    CatChatService(KnowledgeRepository knowledge, PostRepository posts) {
+    CatChatService(KnowledgeRepository knowledge, PostRepository posts, JournalRepository journals) {
         this.knowledge = knowledge;
         this.posts = posts;
+        this.journals = journals;
     }
 
     List<Map<String, String>> models() {
@@ -216,6 +218,11 @@ class CatChatService {
         for (Post post : posts.findByPublishedTrueOrderByCreatedAtDesc()) {
             String content = value(post.summaryZh) + "\n" + value(post.contentZh) + "\n" + value(post.summaryEn) + "\n" + value(post.contentEn);
             sources.add(new Source("博客", post.titleZh, trim(content, 2200), score(terms, post.titleZh + " " + post.titleEn + " " + value(post.tags) + " " + content)));
+        }
+        for (JournalEntry item : journals.findByPublishedTrueOrderByHappenedAtDescCreatedAtDesc()) {
+            String content = value(item.contentZh) + "\n" + value(item.contentEn);
+            String title = item.happenedAt + " · " + item.titleZh;
+            sources.add(new Source("随心记", title, trim(content, 1600), score(terms, title + " " + value(item.titleEn) + " " + value(item.mood) + " " + content) + 1));
         }
         return sources.stream().filter(source -> source.score > 0).sorted(Comparator.comparingInt(Source::score).reversed()).limit(limit).toList();
     }

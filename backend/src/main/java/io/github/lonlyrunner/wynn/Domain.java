@@ -2,6 +2,7 @@ package io.github.lonlyrunner.wynn;
 
 import jakarta.persistence.*;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -149,6 +150,23 @@ class KnowledgeEntry {
     }
 }
 
+@Entity
+@Table(name = "journal_entries")
+class JournalEntry {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY) Long id;
+    @Column(nullable = false, length = 200) String titleZh;
+    @Column(length = 200) String titleEn;
+    @Lob @Column(nullable = false) String contentZh;
+    @Lob String contentEn;
+    @Column(length = 40) String mood;
+    LocalDate happenedAt = LocalDate.now();
+    boolean published = true;
+    Instant createdAt = Instant.now();
+    Instant updatedAt = Instant.now();
+
+    protected JournalEntry() {}
+}
+
 interface PostRepository extends JpaRepository<Post, Long> {
     List<Post> findByPublishedTrueOrderByCreatedAtDesc();
     Optional<Post> findBySlugAndPublishedTrue(String slug);
@@ -178,4 +196,9 @@ interface GuestQuotaRepository extends JpaRepository<GuestQuota, Long> {
 interface KnowledgeRepository extends JpaRepository<KnowledgeEntry, Long> {
     List<KnowledgeEntry> findByEnabledTrueOrderByUpdatedAtDesc();
     Optional<KnowledgeEntry> findByTitle(String title);
+}
+
+interface JournalRepository extends JpaRepository<JournalEntry, Long> {
+    List<JournalEntry> findByPublishedTrueOrderByHappenedAtDescCreatedAtDesc();
+    List<JournalEntry> findAllByOrderByHappenedAtDescCreatedAtDesc();
 }
