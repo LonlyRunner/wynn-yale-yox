@@ -69,10 +69,10 @@ jobs:
       - name: 配置 SSH 密钥
         run: |
           install -d -m 700 ~/.ssh
-          printf '%s' "$DEPLOY_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          printf '%s' "$DEPLOY_SSH_PRIVATE_KEY_B64" | base64 --decode > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
         env:
-          DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          DEPLOY_SSH_PRIVATE_KEY_B64: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY_B64 }}
       - name: 上传部署包
         run: |
           scp -o StrictHostKeyChecking=accept-new deployment.tar.gz \
