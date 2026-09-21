@@ -21,8 +21,8 @@ class Post {
     String summaryZh;
     String summaryEn;
     String coverObjectKey;
-    @Lob String contentZh;
-    @Lob String contentEn;
+    @Lob @Column(columnDefinition = "LONGTEXT") String contentZh;
+    @Lob @Column(columnDefinition = "LONGTEXT") String contentEn;
     boolean published;
     Instant createdAt = Instant.now();
     Instant updatedAt = Instant.now();
@@ -136,7 +136,7 @@ class KnowledgeEntry {
     @Column(nullable = false, length = 200) String title;
     @Column(length = 500) String tags;
     @Column(length = 20) String kind = "KNOWLEDGE";
-    @Lob @Column(nullable = false) String content;
+    @Lob @Column(nullable = false, columnDefinition = "LONGTEXT") String content;
     boolean enabled = true;
     Instant createdAt = Instant.now();
     Instant updatedAt = Instant.now();
@@ -156,8 +156,8 @@ class JournalEntry {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) Long id;
     @Column(nullable = false, length = 200) String titleZh;
     @Column(length = 200) String titleEn;
-    @Lob @Column(nullable = false) String contentZh;
-    @Lob String contentEn;
+    @Lob @Column(nullable = false, columnDefinition = "LONGTEXT") String contentZh;
+    @Lob @Column(columnDefinition = "LONGTEXT") String contentEn;
     @Column(length = 40) String mood;
     LocalDate happenedAt = LocalDate.now();
     boolean published = true;
