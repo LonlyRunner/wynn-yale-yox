@@ -11,6 +11,7 @@ import jakarta.validation.constraints.Size;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -23,6 +24,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseCookie;
@@ -92,12 +94,14 @@ class PublicController {
     private final CommentRepository comments;
     private final MediaRepository media;
     private final OssService oss;
+    private final ImagePreviewService previews;
 
-    PublicController(PostRepository posts, CommentRepository comments, MediaRepository media, OssService oss) {
+    PublicController(PostRepository posts, CommentRepository comments, MediaRepository media, OssService oss, ImagePreviewService previews) {
         this.posts = posts;
         this.comments = comments;
         this.media = media;
         this.oss = oss;
+        this.previews = previews;
     }
 
     @GetMapping("/profile")
@@ -142,6 +146,19 @@ class PublicController {
     @GetMapping("/media")
     Object media() {
         return media.findAllByOrderBySortOrderAscCreatedAtDesc().stream().map(this::mediaDto).toList();
+    }
+
+    @GetMapping(value = "/media/{id}/preview", produces = MediaType.IMAGE_JPEG_VALUE)
+    ResponseEntity<byte[]> mediaPreview(@PathVariable Long id, @RequestParam(defaultValue = "960") int width) {
+        MediaItem item = media.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        try {
+            return ResponseEntity.ok()
+                .cacheControl(CacheControl.maxAge(Duration.ofDays(7)).cachePublic())
+                .contentType(MediaType.IMAGE_JPEG)
+                .body(previews.preview(item, Math.max(1, Math.min(width, 1200))));
+        } catch (RuntimeException error) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "图片预览生成失败", error);
+        }
     }
 
     @GetMapping(value = "/rss.xml", produces = "application/rss+xml;charset=UTF-8")

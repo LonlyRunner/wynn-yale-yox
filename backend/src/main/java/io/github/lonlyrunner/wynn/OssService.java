@@ -5,6 +5,7 @@ import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
 import com.aliyun.oss.model.GeneratePresignedUrlRequest;
 import com.aliyun.oss.model.ObjectMetadata;
+import com.aliyun.oss.model.OSSObject;
 import com.aliyun.oss.model.ResponseHeaderOverrides;
 import java.io.ByteArrayInputStream;
 import java.time.Duration;
@@ -71,6 +72,25 @@ class OssService {
             metadata.setContentLength(bytes.length);
             if (contentType != null && !contentType.isBlank()) metadata.setContentType(contentType);
             client.putObject(bucket, objectKey, new ByteArrayInputStream(bytes), metadata);
+        } finally {
+            client.shutdown();
+        }
+    }
+
+    boolean exists(String objectKey) {
+        requireConfigured();
+        OSS client = client();
+        try { return client.doesObjectExist(bucket, objectKey); }
+        finally { client.shutdown(); }
+    }
+
+    byte[] get(String objectKey) {
+        requireConfigured();
+        OSS client = client();
+        try (OSSObject object = client.getObject(bucket, objectKey)) {
+            return object.getObjectContent().readAllBytes();
+        } catch (Exception error) {
+            throw new IllegalStateException("Unable to read OSS object", error);
         } finally {
             client.shutdown();
         }

@@ -5,6 +5,7 @@ frontend/node_modules/
 frontend/dist/
 backend/target/
 backend/data/
+/data/
 *.log
 desktop-preview.png
 mobile-preview.png
