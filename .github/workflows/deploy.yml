@@ -100,7 +100,8 @@ jobs:
              install -m 755 certbot-hooks/certbot-post-renew.sh /etc/letsencrypt/renewal-hooks/post/wynn-frontend; \
              docker compose --env-file .env up -d --build --remove-orphans; \
              systemctl daemon-reload; \
-             systemctl enable --now wynn-backend; \
+             systemctl enable wynn-backend; \
+             systemctl restart wynn-backend; \
              for attempt in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24; do curl -fsS http://127.0.0.1:8080/actuator/health && exit 0; sleep 5; done; \
              exit 1"
         env:
