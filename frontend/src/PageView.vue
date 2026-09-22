@@ -3,6 +3,8 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { ECharts } from 'echarts'
 import DOMPurify from 'dompurify'
+import hljs from 'highlight.js/lib/common'
+import 'highlight.js/styles/atom-one-dark.css'
 import { marked } from 'marked'
 import { api, ApiError } from './api'
 
@@ -13,6 +15,15 @@ const dark = computed(() => ['home','studio','games','game','login'].includes(St
 const mobileOpen = ref(false), busy = ref(false), notice = ref('')
 const heroVideo = ref<HTMLVideoElement>(), soundOn = ref(false)
 const text = (zh: string, en: string) => lang.value === 'zh' ? zh : en
+const markdownRenderer = new marked.Renderer()
+markdownRenderer.code = ({ text: code, lang }) => {
+  const language = lang?.split(/\s+/)[0]
+  const result = language && hljs.getLanguage(language)
+    ? hljs.highlight(code, { language })
+    : hljs.highlightAuto(code)
+  return `<pre><code class="hljs${result.language ? ` language-${result.language}` : ''}">${result.value}</code></pre>`
+}
+marked.use({ renderer: markdownRenderer })
 const toggleLang = () => { lang.value = lang.value === 'zh' ? 'en' : 'zh'; localStorage.setItem('wynn-lang', lang.value) }
 async function toggleSound() {
   const video = heroVideo.value

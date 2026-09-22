@@ -34,7 +34,7 @@ body{background:radial-gradient(circle at 10% 8%,#ffe4df 0,transparent 23%),radi
 .post{box-shadow:0 14px 35px rgba(112,74,61,.07)}.post>b{color:#dec3b7}
 .blog-search button,.comments form button{color:#fffaf5;background:#b97868;border-radius:12px;box-shadow:0 8px 18px rgba(145,87,72,.16)}
 .feature{overflow:hidden;border-radius:24px;box-shadow:0 20px 45px rgba(105,71,57,.14)}
-.prose blockquote{border-color:#d89584;color:#7c5b51}.prose pre{color:#fff2e8;background:#65483f;border-radius:16px}
+.prose blockquote{border-color:#d89584;color:#7c5b51}.prose pre{width:100%;max-height:420px;box-sizing:border-box;color:#abb2bf;background:#282c34;border:1px solid #3b4048;border-radius:16px;box-shadow:0 14px 34px rgba(55,38,31,.18);tab-size:2}.prose pre code.hljs{padding:0;background:transparent}
 .gallery figure{overflow:hidden;border-radius:22px;box-shadow:0 15px 32px rgba(105,71,57,.12)}
 .gallery figure:after{background:linear-gradient(transparent 48%,rgba(81,49,41,.65))}
 .studio{color:#513b35;background:linear-gradient(135deg,#fff8f0,#f7e5dc)}
