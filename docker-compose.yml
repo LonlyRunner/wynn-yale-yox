@@ -15,7 +15,8 @@ services:
       dockerfile: Dockerfile.runtime
     restart: unless-stopped
     depends_on: [mysql]
-    ports: ["80:80"]
+    ports: ["80:80", "443:443"]
+    volumes: ["/etc/letsencrypt:/etc/letsencrypt:ro"]
     extra_hosts: ["host.docker.internal:host-gateway"]
     deploy: { resources: { limits: { memory: 96M } } }
 volumes:

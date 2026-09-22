@@ -39,12 +39,13 @@ jobs:
       - name: 组装部署包
         run: |
           set -euo pipefail
-          mkdir -p .deploy/backend/target .deploy/frontend .deploy/systemd
+          mkdir -p .deploy/backend/target .deploy/frontend .deploy/systemd .deploy/certbot-hooks
           cp docker-compose.yml .deploy/
           cp backend/target/wynn-backend-0.1.0.jar .deploy/backend/target/
           cp frontend/Dockerfile.runtime frontend/nginx.conf .deploy/frontend/
           cp -R frontend/dist .deploy/frontend/
           cp deploy/wynn-backend.service .deploy/systemd/
+          cp deploy/certbot-pre-renew.sh deploy/certbot-post-renew.sh .deploy/certbot-hooks/
           printf '%s' "$DEPLOY_ENV" > .deploy/.env
           test -s .deploy/.env
           mysql_database=$(grep -m1 '^MYSQL_DATABASE=' .deploy/.env | cut -d= -f2- | tr -d '\r')
@@ -94,6 +95,9 @@ jobs:
              rm -f /tmp/wynn-yale-yox-${GITHUB_SHA}.tar.gz; \
              cd /opt/wynn-yale-yox; \
              cp systemd/wynn-backend.service /etc/systemd/system/wynn-backend.service; \
+             install -d -m 755 /etc/letsencrypt/renewal-hooks/pre /etc/letsencrypt/renewal-hooks/post; \
+             install -m 755 certbot-hooks/certbot-pre-renew.sh /etc/letsencrypt/renewal-hooks/pre/wynn-frontend; \
+             install -m 755 certbot-hooks/certbot-post-renew.sh /etc/letsencrypt/renewal-hooks/post/wynn-frontend; \
              docker compose --env-file .env up -d --build --remove-orphans; \
              systemctl daemon-reload; \
              systemctl enable --now wynn-backend; \
