@@ -115,6 +115,14 @@ body{background:radial-gradient(circle at 10% 8%,#ffe4df 0,transparent 23%),radi
 @media(max-width:760px){
   html,body,#app{max-width:100%;overflow-x:hidden}
   .studio{grid-template-columns:minmax(0,1fr)}
+  .studio aside{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:16px 20px;border-right:0;border-bottom:1px solid #ead2c6;background:rgba(255,248,239,.7)}
+  .studio aside>b,.studio aside>span,.studio aside>a{grid-column:1/-1}
+  .studio aside>b{margin:0 0 2px;color:#b46e61}
+  .studio aside>button{padding:11px 12px;text-align:center;border:1px solid #dec1b5;border-radius:13px;color:#765149;background:#fffaf5}
+  .studio aside>button.on{color:#fffaf5;background:#b97868;border-color:#b97868}
+  .studio aside>span{padding:3px 1px;color:#8b6c63}
+  .studio aside>a{padding:5px 1px;color:#a56054}
+  .studio aside>span:last-child{display:none}
   .studio,.studio-main,.prompt,.result{width:100%;max-width:100%;min-width:0}
   .studio-main{padding:34px 20px 44px}
   .studio-main>small,.studio-main h1{overflow-wrap:anywhere}
