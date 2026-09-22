@@ -112,7 +112,10 @@ class CatChatService {
         payload.put("temperature", 0.65);
         payload.put("max_tokens", 1200);
         String answer = complete(selected, payload, 90);
-        List<Map<String, String>> sources = retrieved.stream().map(source -> Map.of("type", source.type, "title", source.title)).toList();
+        List<Map<String, String>> sources = new ArrayList<>();
+        activeEntries.stream().filter(this::isPersona)
+            .forEach(item -> sources.add(Map.of("type", "人格", "title", item.title)));
+        retrieved.stream().map(source -> Map.of("type", source.type, "title", source.title)).forEach(sources::add);
         return new ChatReply(answer, selected.id, sources);
     }
 

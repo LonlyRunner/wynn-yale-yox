@@ -532,6 +532,7 @@ watch(()=>route.fullPath,()=>{mobileOpen.value=false;notice.value='';soundOn.val
   .footer-toys img, .footer-toys img:first-child, .footer-toys img:nth-child(2), .footer-toys img:last-child { width: 76px; }
   .footer-grid { grid-template-columns: 1fr 1fr; gap: 38px 25px; }
   .footer-brand { grid-column: 1/-1; }
+  .footer-grid>div:last-child { grid-column: 1/-1; }
   .footer-bottom { flex-direction: column; }
   .legal-page { padding: 65px 24px 90px; }
 }
