@@ -106,7 +106,8 @@ jobs:
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-      - name: 验证公网 HTTPS
+      - name: 检查公网 HTTPS（备案完成后应通过）
+        continue-on-error: true
         run: |
           curl --fail --silent --show-error --retry 6 --retry-delay 5 \
             https://wynnyaleyox.me/api/public/profile >/dev/null
