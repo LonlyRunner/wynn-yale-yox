@@ -18,6 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -36,6 +38,17 @@ jobs:
         run: |
           npm ci
           npm run build
+      - name: 判断后端是否需要重启
+        id: backend-change
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]] || \
+             [[ "${{ github.event.before }}" == "0000000000000000000000000000000000000000" ]] || \
+             ! git diff --quiet "${{ github.event.before }}" "${{ github.sha }}" -- backend deploy/wynn-backend.service; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: 组装部署包
         run: |
           set -euo pipefail
@@ -45,7 +58,11 @@ jobs:
           cp frontend/Dockerfile.runtime frontend/nginx.conf .deploy/frontend/
           cp -R frontend/dist .deploy/frontend/
           cp deploy/wynn-backend.service .deploy/systemd/
+          cp deploy/release.sh .deploy/
           cp deploy/certbot-pre-renew.sh deploy/certbot-post-renew.sh .deploy/certbot-hooks/
+          if [[ "${{ steps.backend-change.outputs.changed }}" == "true" ]]; then
+            touch .deploy/restart-backend
+          fi
           printf '%s' "$DEPLOY_ENV" > .deploy/.env
           test -s .deploy/.env
           mysql_database=$(grep -m1 '^MYSQL_DATABASE=' .deploy/.env | cut -d= -f2- | tr -d '\r')
@@ -94,16 +111,7 @@ jobs:
              tar -xzf /tmp/wynn-yale-yox-${GITHUB_SHA}.tar.gz -C /opt/wynn-yale-yox; \
              rm -f /tmp/wynn-yale-yox-${GITHUB_SHA}.tar.gz; \
              cd /opt/wynn-yale-yox; \
-             cp systemd/wynn-backend.service /etc/systemd/system/wynn-backend.service; \
-             install -d -m 755 /etc/letsencrypt/renewal-hooks/pre /etc/letsencrypt/renewal-hooks/post; \
-             install -m 755 certbot-hooks/certbot-pre-renew.sh /etc/letsencrypt/renewal-hooks/pre/wynn-frontend; \
-             install -m 755 certbot-hooks/certbot-post-renew.sh /etc/letsencrypt/renewal-hooks/post/wynn-frontend; \
-             docker compose --env-file .env up -d --build --remove-orphans; \
-             systemctl daemon-reload; \
-             systemctl enable wynn-backend; \
-             systemctl restart wynn-backend; \
-             for attempt in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24; do curl -fsS http://127.0.0.1:8080/actuator/health && exit 0; sleep 5; done; \
-             exit 1"
+             bash release.sh"
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
