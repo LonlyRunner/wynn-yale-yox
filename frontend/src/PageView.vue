@@ -13,6 +13,8 @@ const route = useRoute(), router = useRouter()
 const lang = ref<Lang>((localStorage.getItem('wynn-lang') as Lang) || 'zh')
 const dark = computed(() => ['home','studio','games','game','login'].includes(String(route.name)))
 const mobileOpen = ref(false), busy = ref(false), notice = ref('')
+const mobileMusicDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+const compactMusicPlayer = ref(mobileMusicDevice||window.matchMedia('(max-width: 760px)').matches)
 const heroVideo = ref<HTMLVideoElement>(), soundOn = ref(false)
 const text = (zh: string, en: string) => lang.value === 'zh' ? zh : en
 const markdownRenderer = new marked.Renderer()
@@ -36,6 +38,7 @@ async function toggleSound() {
   }
   soundOn.value = next
 }
+function updateCompactMusicPlayer(){compactMusicPlayer.value=mobileMusicDevice||window.matchMedia('(max-width: 760px)').matches}
 const catOffsets = ref<Record<string, { x: number; y: number }>>({})
 const catDragging = ref(false), catDragged = ref(false)
 const catKey = computed(() => String(route.name || 'cat'))
@@ -253,7 +256,7 @@ function restartStack(){board.value=createStackBoard();score.value=0;stackMoveTi
 function key(event:KeyboardEvent){if(gameId.value==='pelican'&&(event.key===' '||event.key==='ArrowUp')){event.preventDefault();jumpPelican()}if(gameId.value==='stack'&&event.key.startsWith('Arrow')){event.preventDefault();stackMove(event.key.replace('Arrow','').toLowerCase() as MoveDirection)}}
 function resetGame(){clearInterval(timer.value);playing.value=false;score.value=0;pelicanJumping.value=false;memoryLevel.value=1;memory.value=createMemoryDeck(1);openCards.value=[];memoryBusy.value=false;board.value=createStackBoard();stackMoveTick.value=0}
 watch(()=>[adminTab.value,categorySeries.value,aiStatusSeries.value,enabledKnowledgePercent.value],renderAdminCharts,{deep:true})
-onMounted(()=>{addEventListener('keydown',key);addEventListener('resize',resizeAdminCharts);loadPublic();if(route.name==='admin')loadAdmin();if(route.name==='game'&&gameId.value==='pelican')loadChatModels()});onBeforeUnmount(()=>{removeEventListener('keydown',key);removeEventListener('resize',resizeAdminCharts);disposeAdminCharts();clearInterval(timer.value);clearInterval(aiPollTimer)})
+onMounted(()=>{addEventListener('keydown',key);addEventListener('resize',resizeAdminCharts);addEventListener('resize',updateCompactMusicPlayer);updateCompactMusicPlayer();loadPublic();if(route.name==='admin')loadAdmin();if(route.name==='game'&&gameId.value==='pelican')loadChatModels()});onBeforeUnmount(()=>{removeEventListener('keydown',key);removeEventListener('resize',resizeAdminCharts);removeEventListener('resize',updateCompactMusicPlayer);disposeAdminCharts();clearInterval(timer.value);clearInterval(aiPollTimer)})
 watch(()=>route.fullPath,()=>{mobileOpen.value=false;notice.value='';soundOn.value=false;clearInterval(aiPollTimer);if(route.name==='game'){resetGame();if(gameId.value==='pelican')loadChatModels()}else{playing.value=false;clearInterval(timer.value)}loadPublic();if(route.name==='admin')loadAdmin()})
 </script>
 
@@ -279,7 +282,7 @@ watch(()=>route.fullPath,()=>{mobileOpen.value=false;notice.value='';soundOn.val
     <section class="home-music">
       <img class="music-yarn" src="/media/cat-items/yarn.webp" alt="" loading="lazy" decoding="async">
       <div class="music-cover playlist-cover"><img src="/media/netease-playlist-cover.jpg" :alt="text('网易云歌单“薛”封面','Cover of NetEase playlist Xue')"><span>10 TRACKS</span></div>
-      <div class="music-copy playlist-copy"><small>NETEASE CLOUD MUSIC · PLAYLIST</small><h2>薛</h2><p>{{text('Lonely__Runner 的网易云歌单。点击歌曲名称即可切换播放，会员歌曲的播放权限由网易云账号状态决定。','A NetEase Cloud Music playlist by Lonely__Runner. Select any title to switch tracks; member-only playback follows your NetEase account access.')}}</p><div class="playlist-meta"><span>10 {{text('首歌曲','tracks')}}</span><a href="https://music.163.com/playlist?id=17861500518" target="_blank" rel="noreferrer">{{text('在网易云打开','Open in NetEase')}} ↗</a></div><div class="netease-player"><iframe title="网易云音乐歌单：薛" src="https://music.163.com/outchain/player?type=0&id=17861500518&auto=0&height=430" width="100%" height="450" frameborder="0" loading="lazy" allow="autoplay"></iframe></div></div>
+      <div class="music-copy playlist-copy"><small>NETEASE CLOUD MUSIC · PLAYLIST</small><h2>薛</h2><p>{{compactMusicPlayer?text('Lonely__Runner 的网易云歌单。点击下方按钮进入网易云播放并切换歌曲。','A NetEase Cloud Music playlist by Lonely__Runner. Open it below to play and switch tracks in NetEase.'):text('Lonely__Runner 的网易云歌单。点击歌曲名称即可切换播放，会员歌曲的播放权限由网易云账号状态决定。','A NetEase Cloud Music playlist by Lonely__Runner. Select any title to switch tracks; member-only playback follows your NetEase account access.')}}</p><div class="playlist-meta"><span>10 {{text('首歌曲','tracks')}}</span><a href="https://music.163.com/playlist?id=17861500518" target="_blank" rel="noreferrer">{{text('在网易云打开','Open in NetEase')}} ↗</a></div><div v-if="!compactMusicPlayer" class="netease-player"><iframe title="网易云音乐歌单：薛" src="https://music.163.com/outchain/player?type=0&amp;id=17861500518&amp;auto=0&amp;height=430" width="100%" height="450" frameborder="0" loading="lazy" allow="autoplay"></iframe></div><div v-else class="netease-mobile-player"><span>♫</span><div><b>{{text('在网易云中播放','Play in NetEase Cloud Music')}}</b><small>{{text('手机端由网易云应用提供播放与歌曲切换','Playback and track switching are handled by the NetEase app on mobile')}}</small></div><a href="https://music.163.com/playlist?id=17861500518" target="_blank" rel="noreferrer">{{text('打开歌单','Open playlist')}} →</a></div></div>
       <img class="music-feather" src="/media/cat-items/feather.webp" alt="" loading="lazy" decoding="async">
     </section>
 
@@ -430,6 +433,12 @@ watch(()=>route.fullPath,()=>{mobileOpen.value=false;notice.value='';soundOn.val
 .playlist-meta a { color: #c4d2d8; border-bottom: 1px solid #607985; padding-bottom: 5px; }
 .netease-player { position: relative; overflow: hidden; min-height: 450px; background: #f5f5f5; border: 1px solid #334852; border-radius: 12px; box-shadow: 0 20px 45px rgb(0 0 0 / 28%); }
 .netease-player iframe { display: block; border: 0; }
+.netease-mobile-player { display: grid; grid-template-columns: 48px 1fr; gap: 13px; align-items: center; padding: 18px; border: 1px solid #d4a899; border-radius: 18px; background: rgb(255 250 246 / 72%); box-shadow: 0 16px 34px rgb(115 73 59 / 13%); }
+.netease-mobile-player>span { width: 48px; height: 48px; display: grid; place-items: center; color: #fff8ef; background: #b97868; border-radius: 50%; font-size: 22px; }
+.netease-mobile-player>div { min-width: 0; display: grid; gap: 5px; }
+.netease-mobile-player b { font: 18px var(--serif); }
+.netease-mobile-player small { color: #8f7167; line-height: 1.55; }
+.netease-mobile-player>a { grid-column: 1/-1; justify-self: stretch; padding: 11px 15px; text-align: center; color: #fffaf5; background: #b97868; border-radius: 999px; }
 .music-yarn, .music-feather, .visual-mouse { position: absolute; pointer-events: none; filter: drop-shadow(0 18px 24px rgb(0 0 0 / 28%)); }
 .music-yarn { width: 180px; left: -52px; top: 20px; opacity: .42; transform: rotate(18deg); }
 .music-feather { width: 145px; right: -22px; bottom: -24px; opacity: .62; transform: rotate(-25deg); }
