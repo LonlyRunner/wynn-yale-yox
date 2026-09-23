@@ -167,6 +167,26 @@ class JournalEntry {
     protected JournalEntry() {}
 }
 
+@Entity
+@Table(name = "chat_history")
+class ChatHistoryEntry {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY) Long id;
+    @Column(nullable = false, length = 20) String role;
+    @Lob @Column(nullable = false, columnDefinition = "LONGTEXT") String content;
+    @Column(length = 200) String model;
+    @Lob @Column(columnDefinition = "LONGTEXT") String sourcesJson;
+    Instant createdAt = Instant.now();
+
+    protected ChatHistoryEntry() {}
+
+    ChatHistoryEntry(String role, String content, String model, String sourcesJson) {
+        this.role = role;
+        this.content = content;
+        this.model = model;
+        this.sourcesJson = sourcesJson;
+    }
+}
+
 interface PostRepository extends JpaRepository<Post, Long> {
     List<Post> findByPublishedTrueOrderByCreatedAtDesc();
     Optional<Post> findBySlugAndPublishedTrue(String slug);
@@ -187,6 +207,7 @@ interface MediaRepository extends JpaRepository<MediaItem, Long> {
 
 interface AiJobRepository extends JpaRepository<AiJob, Long> {
     List<AiJob> findAllByOrderByCreatedAtDesc();
+    List<AiJob> findByResultObjectKey(String resultObjectKey);
 }
 
 interface GuestQuotaRepository extends JpaRepository<GuestQuota, Long> {
@@ -201,4 +222,8 @@ interface KnowledgeRepository extends JpaRepository<KnowledgeEntry, Long> {
 interface JournalRepository extends JpaRepository<JournalEntry, Long> {
     List<JournalEntry> findByPublishedTrueOrderByHappenedAtDescCreatedAtDesc();
     List<JournalEntry> findAllByOrderByHappenedAtDescCreatedAtDesc();
+}
+
+interface ChatHistoryRepository extends JpaRepository<ChatHistoryEntry, Long> {
+    List<ChatHistoryEntry> findAllByOrderByCreatedAtAsc();
 }

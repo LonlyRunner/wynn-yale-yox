@@ -219,19 +219,95 @@ class PublicController {
 @RequestMapping("/api/chat")
 class ChatController {
     private final CatChatService chat;
+    private final ChatHistoryRepository history;
+    private final AiGenerationService generator;
+    private final ObjectMapper json = new ObjectMapper();
+    private final Tika tika = new Tika();
 
-    ChatController(CatChatService chat) { this.chat = chat; }
+    ChatController(CatChatService chat, ChatHistoryRepository history, AiGenerationService generator) {
+        this.chat = chat; this.history = history; this.generator = generator;
+    }
 
     @GetMapping("/models")
     Object models() { return chat.models(); }
 
     @PostMapping("/messages")
-    Object message(@Valid @RequestBody ChatRequest request) {
+    Object message(@Valid @RequestBody ChatRequest request, Authentication auth) {
+        return reply(request.model(), request.message(), request.history() == null ? List.of() : request.history(), auth);
+    }
+
+    @PostMapping(value = "/messages/multimodal", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    Object multimodal(@RequestParam(defaultValue = "deepseek") String model,
+                      @RequestParam(defaultValue = "") String message,
+                      @RequestParam(defaultValue = "[]") String historyJson,
+                      @RequestPart(name = "files", required = false) List<MultipartFile> files,
+                      Authentication auth) {
         try {
-            return chat.chat(request.model(), request.message(), request.history() == null ? List.of() : request.history());
+            List<ChatTurn> turns = json.readValue(historyJson, new TypeReference<List<ChatTurn>>() {});
+            StringBuilder enriched = new StringBuilder(message.isBlank() ? "请分析我发送的附件。" : message.trim());
+            List<MultipartFile> attachments = files == null ? List.of() : files.stream().filter(file -> !file.isEmpty()).limit(5).toList();
+            for (MultipartFile file : attachments) enrich(enriched, model, file);
+            return reply(model, enriched.toString(), turns, auth);
+        } catch (ResponseStatusException error) {
+            throw error;
+        } catch (Exception error) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "附件解析失败：" + Objects.requireNonNullElse(error.getMessage(), "未知错误"), error);
+        }
+    }
+
+    @GetMapping("/history")
+    Object history(Authentication auth) {
+        requireOwner(auth);
+        return history.findAllByOrderByCreatedAtAsc().stream().skip(Math.max(0, history.count() - 100)).map(item -> {
+            Map<String, Object> dto = new LinkedHashMap<>();
+            dto.put("id", item.id); dto.put("role", item.role); dto.put("content", item.content); dto.put("model", Objects.requireNonNullElse(item.model, "")); dto.put("createdAt", item.createdAt);
+            try { dto.put("sources", item.sourcesJson == null || item.sourcesJson.isBlank() ? List.of() : json.readValue(item.sourcesJson, new TypeReference<List<Map<String, String>>>() {})); }
+            catch (Exception ignored) { dto.put("sources", List.of()); }
+            return dto;
+        }).toList();
+    }
+
+    @DeleteMapping("/history")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void clearHistory(Authentication auth) { requireOwner(auth); history.deleteAllInBatch(); }
+
+    private Object reply(String model, String message, List<ChatTurn> turns, Authentication auth) {
+        try {
+            ChatReply result = chat.chat(model, message, turns);
+            if (AuthController.isOwner(auth)) {
+                history.save(new ChatHistoryEntry("user", message, model, null));
+                history.save(new ChatHistoryEntry("assistant", result.answer(), result.model(), json.writeValueAsString(result.sources())));
+            }
+            return result;
         } catch (IllegalStateException error) {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, error.getMessage(), error);
+        } catch (Exception error) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "聊天记录保存失败", error);
         }
+    }
+
+    private void enrich(StringBuilder message, String model, MultipartFile file) throws Exception {
+        if (file.getSize() > 12 * 1024 * 1024L) throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "单个附件不能超过 12MB");
+        String name = Objects.requireNonNullElse(file.getOriginalFilename(), "附件").replaceAll("[\\r\\n]", "_");
+        String type = Objects.requireNonNullElse(file.getContentType(), "application/octet-stream");
+        if (type.startsWith("image/")) {
+            String dataUrl = "data:" + type + ";base64," + java.util.Base64.getEncoder().encodeToString(file.getBytes());
+            Map<String, String> prompts = generator.describeImage(dataUrl, name);
+            message.append("\n\n【图片附件：").append(name).append("】\n视觉特征：").append(prompts.get("promptZh"));
+        } else if (type.startsWith("audio/")) {
+            String transcript = chat.transcribe(model, file);
+            message.append("\n\n【语音附件：").append(name).append("】\n")
+                .append(transcript.isBlank() ? "当前模型未能转写这段语音，请结合用户文字回答，并说明需要补充文字内容。" : "语音转写：" + transcript);
+        } else {
+            String content = tika.parseToString(file.getInputStream());
+            content = content == null ? "" : content.strip();
+            if (content.length() > 10000) content = content.substring(0, 10000) + "…";
+            message.append("\n\n【文件附件：").append(name).append("】\n").append(content.isBlank() ? "文件中没有提取到可读文字。" : content);
+        }
+    }
+
+    private void requireOwner(Authentication auth) {
+        if (!AuthController.isOwner(auth)) throw new ResponseStatusException(HttpStatus.FORBIDDEN);
     }
 
     @PostMapping("/drawings/pelican")
@@ -351,8 +427,23 @@ class AdminController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void deleteJob(@PathVariable Long id) {
         AiJob job = jobs.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-        if (job.resultObjectKey != null && oss.configured()) oss.delete(job.resultObjectKey);
+        if (job.resultObjectKey != null && media.findByObjectKey(job.resultObjectKey).isEmpty() && oss.configured()) oss.delete(job.resultObjectKey);
         jobs.delete(job);
+    }
+
+    @PostMapping("/ai/jobs/{id}/gallery")
+    Object addJobToGallery(@PathVariable Long id) {
+        AiJob job = jobs.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (!"IMAGE".equals(job.type) || !"COMPLETED".equals(job.status) || job.resultObjectKey == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "只有已完成并保存到 OSS 的图片可以加入影像库");
+        }
+        MediaItem item = media.findByObjectKey(job.resultObjectKey).orElseGet(() -> {
+            String title = job.prompt == null || job.prompt.isBlank() ? "AI 创作" : (job.prompt.length() > 80 ? job.prompt.substring(0, 80) + "…" : job.prompt);
+            MediaItem created = new MediaItem(job.resultObjectKey, title, title, "IMAGE", (int) media.count());
+            created.promptZh = job.prompt; created.promptEn = job.prompt;
+            return created;
+        });
+        return Map.of("id", media.save(item).id, "status", "SAVED");
     }
 
     @PostMapping("/oss/upload-url")
@@ -389,6 +480,7 @@ class AdminController {
     void deleteMedia(@PathVariable Long id) {
         MediaItem item = media.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         if (oss.configured()) oss.delete(item.objectKey);
+        for (AiJob job : jobs.findByResultObjectKey(item.objectKey)) { job.resultObjectKey = null; jobs.save(job); }
         media.delete(item);
     }
 
@@ -499,6 +591,7 @@ class AdminController {
         Map<String, Object> dto = new LinkedHashMap<>();
         dto.put("id", job.id); dto.put("provider", job.provider); dto.put("type", job.type); dto.put("prompt", job.prompt); dto.put("status", job.status);
         dto.put("resultUrl", generator.resultUrl(job)); dto.put("downloadUrl", generator.downloadUrl(job));
+        dto.put("inGallery", job.resultObjectKey != null && media.findByObjectKey(job.resultObjectKey).isPresent());
         dto.put("error", job.errorMessage == null ? "" : job.errorMessage); dto.put("createdAt", job.createdAt);
         return dto;
     }

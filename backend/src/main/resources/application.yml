@@ -47,6 +47,7 @@ app:
       image-model: ${RELAY_IMAGE_MODEL:grok-imagine-image-2.0}
       video-model: ${RELAY_VIDEO_MODEL:grok-imagine-video-1.5}
     chat:
+      transcription-model: ${CHAT_TRANSCRIPTION_MODEL:whisper-1}
       deepseek:
         base-url: ${DEEPSEEK_BASE_URL:${QWEN_BASE_URL:}}
         api-key: ${DEEPSEEK_API_KEY:${QWEN_API_KEY:}}

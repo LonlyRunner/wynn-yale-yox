@@ -1,6 +1,7 @@
 package io.github.lonlyrunner.wynn;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.ByteArrayOutputStream;
 import java.io.StringReader;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -19,8 +20,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
+import java.nio.charset.StandardCharsets;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import org.xml.sax.InputSource;
 
 record ChatTurn(String role, String content) {}
@@ -65,6 +68,7 @@ class CatChatService {
     @Value("${app.ai.chat.secondary-relay.base-url:}") String secondaryRelayBaseUrl;
     @Value("${app.ai.chat.secondary-relay.api-key:}") String secondaryRelayApiKey;
     @Value("${app.ai.chat.secondary-relay.models:}") String secondaryRelayModels;
+    @Value("${app.ai.chat.transcription-model:whisper-1}") String transcriptionModel;
 
     CatChatService(KnowledgeRepository knowledge, PostRepository posts, JournalRepository journals) {
         this.knowledge = knowledge;
@@ -117,6 +121,37 @@ class CatChatService {
             .forEach(item -> sources.add(Map.of("type", "人格", "title", item.title)));
         retrieved.stream().map(source -> Map.of("type", source.type, "title", source.title)).forEach(sources::add);
         return new ChatReply(answer, selected.id, sources);
+    }
+
+    String transcribe(String provider, MultipartFile file) {
+        Provider selected = provider(provider);
+        String boundary = "----WynnAudio" + System.nanoTime();
+        try {
+            ByteArrayOutputStream body = new ByteArrayOutputStream();
+            writePart(body, boundary, "model", transcriptionModel);
+            String filename = value(file.getOriginalFilename()).replaceAll("[\\r\\n\\\"]", "_");
+            body.write(("--" + boundary + "\r\nContent-Disposition: form-data; name=\"file\"; filename=\"" + filename + "\"\r\n" +
+                "Content-Type: " + value(file.getContentType()) + "\r\n\r\n").getBytes(StandardCharsets.UTF_8));
+            body.write(file.getBytes());
+            body.write(("\r\n--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8));
+            HttpRequest request = HttpRequest.newBuilder(URI.create(apiUrl(selected.baseUrl, "/audio/transcriptions")))
+                .timeout(Duration.ofMinutes(3))
+                .header("Authorization", "Bearer " + selected.apiKey)
+                .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+                .POST(HttpRequest.BodyPublishers.ofByteArray(body.toByteArray())).build();
+            HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() < 200 || response.statusCode() >= 300) return "";
+            return json.readTree(response.body()).path("text").asText("").trim();
+        } catch (InterruptedException error) {
+            Thread.currentThread().interrupt();
+            return "";
+        } catch (Exception error) {
+            return "";
+        }
+    }
+
+    private void writePart(ByteArrayOutputStream body, String boundary, String name, String value) throws Exception {
+        body.write(("--" + boundary + "\r\nContent-Disposition: form-data; name=\"" + name + "\"\r\n\r\n" + value + "\r\n").getBytes(StandardCharsets.UTF_8));
     }
 
     DrawingReply drawPelican(String provider) {
