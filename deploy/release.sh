@@ -30,5 +30,14 @@ done
 docker compose --env-file .env up -d --build frontend --remove-orphans
 docker exec wynn-yale-yox-frontend-1 \
   wget -qO- http://host.docker.internal:8080/actuator/health >/dev/null
-curl -kfsS --resolve wynnyaleyox.me:443:127.0.0.1 \
-  https://wynnyaleyox.me/api/public/profile >/dev/null
+
+frontend_ready=false
+for attempt in {1..15}; do
+  if curl -kfsS --resolve wynnyaleyox.me:443:127.0.0.1 \
+    https://wynnyaleyox.me/api/public/profile >/dev/null; then
+    frontend_ready=true
+    break
+  fi
+  sleep 2
+done
+[[ "$frontend_ready" == "true" ]]
