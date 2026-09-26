@@ -8,12 +8,16 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 class AiGenerationService {
@@ -29,6 +33,8 @@ class AiGenerationService {
     @Value("${app.ai.relay.api-key:}") String relayApiKey;
     @Value("${app.ai.relay.image-model:grok-imagine-image-2.0}") String relayImageModel;
     @Value("${app.ai.relay.video-model:grok-imagine-video-1.5}") String relayVideoModel;
+    @Value("${app.ai.relay.image-models:}") String relayImageModels;
+    @Value("${app.ai.relay.video-models:}") String relayVideoModels;
     @Value("${app.ai.qwen.base-url:}") String qwenBaseUrl;
     @Value("${app.ai.qwen.api-key:}") String qwenApiKey;
     @Value("${app.ai.qwen.image-model:qwen-image-3.0}") String qwenImageModel;
@@ -39,17 +45,55 @@ class AiGenerationService {
         this.oss = oss;
     }
 
+    record GenerationModel(String id, String name, String type, String model, String provider) {}
+
+    List<GenerationModel> models() {
+        List<GenerationModel> result = new ArrayList<>();
+        if (configured(relayBaseUrl, relayApiKey) || configured(qwenBaseUrl, qwenApiKey))
+            result.add(new GenerationModel("auto", "自动选择（失败时回退千问）", "IMAGE", "", "auto"));
+        if (configured(relayBaseUrl, relayApiKey)) {
+            addModels(result, "IMAGE", relayImageModel, relayImageModels);
+            addModels(result, "VIDEO", relayVideoModel, relayVideoModels);
+        }
+        if (configured(qwenBaseUrl, qwenApiKey))
+            result.add(new GenerationModel("qwen:" + qwenImageModel, "千问 · " + qwenImageModel, "IMAGE", qwenImageModel, "qwen"));
+        return result;
+    }
+
+    GenerationModel selectModel(String type, String id) {
+        List<GenerationModel> available = models().stream().filter(item -> item.type().equals(type)).toList();
+        if (available.isEmpty()) throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "该类型的生成模型尚未配置");
+        if (id == null || id.isBlank()) return available.get(0); // Existing clients retain automatic/default selection.
+        return available.stream().filter(item -> item.id().equals(id)).findFirst()
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "所选模型不可用或不支持该创作类型，请刷新模型列表"));
+    }
+
+    private void addModels(List<GenerationModel> result, String type, String primary, String alternatives) {
+        Arrays.stream((primary + "," + (alternatives == null ? "" : alternatives)).split(","))
+            .map(String::trim).filter(model -> !model.isEmpty()).distinct()
+            .forEach(model -> result.add(new GenerationModel("relay:" + model, model, type, model, "relay")));
+    }
+
     AiJob createImage(AiJob job) {
+        boolean automatic = "auto".equals(job.provider);
+        if (automatic) {
+            boolean relay = configured(relayBaseUrl, relayApiKey);
+            job.provider = relay ? "relay" : "qwen";
+            job.model = relay ? relayImageModel : qwenImageModel;
+        }
         job.status = "GENERATING";
         jobs.save(job);
         try {
             String outputUrl;
             try {
-                outputUrl = requestImage(relayBaseUrl, relayApiKey, relayImageModel, job.prompt, job.aspectRatio, false);
-                job.provider = "relay";
+                boolean qwen = "qwen".equals(job.provider);
+                outputUrl = requestImage(qwen ? qwenBaseUrl : relayBaseUrl, qwen ? qwenApiKey : relayApiKey,
+                    job.model, job.prompt, job.aspectRatio, qwen);
             } catch (Exception relayFailure) {
-                outputUrl = requestImage(qwenBaseUrl, qwenApiKey, qwenImageModel, job.prompt, job.aspectRatio, true);
+                if (!automatic || !"relay".equals(job.provider) || !configured(qwenBaseUrl, qwenApiKey)) throw relayFailure;
                 job.provider = "qwen-fallback";
+                job.model = qwenImageModel;
+                outputUrl = requestImage(qwenBaseUrl, qwenApiKey, job.model, job.prompt, job.aspectRatio, true);
             }
             storeRemoteMedia(job, outputUrl, "image/jpeg", "jpg");
             job.status = "COMPLETED";
@@ -68,7 +112,7 @@ class AiGenerationService {
         try {
             requireConfig(relayBaseUrl, relayApiKey, "Relay");
             Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("model", relayVideoModel);
+            payload.put("model", job.model);
             payload.put("prompt", job.prompt);
             payload.put("duration", job.duration == null ? 5 : job.duration);
             payload.put("resolution", job.resolution == null ? "720p" : job.resolution);
@@ -268,6 +312,10 @@ class AiGenerationService {
     }
 
     private void requireConfig(String baseUrl, String apiKey, String name) {
-        if (baseUrl == null || baseUrl.isBlank() || apiKey == null || apiKey.isBlank()) throw new IllegalStateException(name + " 尚未配置");
+        if (!configured(baseUrl, apiKey)) throw new IllegalStateException(name + " 尚未配置");
+    }
+
+    private boolean configured(String baseUrl, String apiKey) {
+        return baseUrl != null && !baseUrl.isBlank() && apiKey != null && !apiKey.isBlank();
     }
 }

@@ -42,7 +42,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 record LoginRequest(@NotBlank String username, @NotBlank String password) {}
-record AiJobRequest(@NotBlank String type, @NotBlank @Size(max = 4000) String prompt, String aspectRatio, String resolution, Integer duration) {}
+record AiJobRequest(@NotBlank String type, @NotBlank @Size(max = 4000) String prompt, String aspectRatio, String resolution, Integer duration, @Size(max = 200) String model) {}
 record CommentRequest(@NotBlank @Size(max = 80) String author, @Size(max = 160) String email, @NotBlank @Size(max = 2000) String content) {}
 record PostRequest(@NotBlank String slug, @NotBlank String titleZh, @NotBlank String titleEn, String category, String tags, String summaryZh, String summaryEn, String contentZh, String contentEn, String coverObjectKey, boolean published) {}
 record MediaRequest(@NotBlank String objectKey, String titleZh, String titleEn, String mediaType, String promptZh, String promptEn, int sortOrder) {}
@@ -343,6 +343,9 @@ class AiController {
         return Map.of("owner", false, "imageRemaining", !quota.imageUsed, "videoRemaining", !quota.videoUsed);
     }
 
+    @GetMapping("/models")
+    Object models() { return generator.models(); }
+
     @GetMapping("/jobs")
     List<Map<String, Object>> recentJobs(@RequestParam(defaultValue = "IMAGE") String type, Authentication auth,
                                         HttpServletRequest request, HttpServletResponse response) {
@@ -360,6 +363,7 @@ class AiController {
     Object create(@Valid @RequestBody AiJobRequest requestBody, Authentication auth, HttpServletRequest request, HttpServletResponse response) {
         String type = requestBody.type().toUpperCase(Locale.ROOT);
         if (!List.of("IMAGE", "VIDEO").contains(type)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "不支持的创作类型");
+        AiGenerationService.GenerationModel selected = generator.selectModel(type, requestBody.model());
         boolean owner = AuthController.isOwner(auth);
         String guestId = owner ? null : guestId(request, response);
         if (!owner) reserve(guestId, type);
@@ -367,7 +371,9 @@ class AiController {
         String requestedResolution = requestBody.resolution();
         String resolution = requestedResolution != null && List.of("480p", "720p", "1080p").contains(requestedResolution) ? requestedResolution : "720p";
         String ratio = requestBody.aspectRatio() == null || requestBody.aspectRatio().isBlank() ? "16:9" : requestBody.aspectRatio();
-        AiJob job = jobs.save(new AiJob("relay", type, requestBody.prompt().trim(), guestId, ratio, resolution, duration));
+        AiJob job = new AiJob(selected.provider(), type, requestBody.prompt().trim(), guestId, ratio, resolution, duration);
+        job.model = selected.model();
+        jobs.save(job);
         AiJob result = "IMAGE".equals(type) ? generator.createImage(job) : generator.createVideo(job);
         if (!owner && "FAILED".equals(result.status)) release(guestId, type);
         return jobDto(result);
@@ -408,6 +414,7 @@ class AiController {
     private Map<String, Object> jobDto(AiJob job) {
         Map<String, Object> dto = new LinkedHashMap<>();
         dto.put("id", job.id); dto.put("provider", job.provider); dto.put("type", job.type); dto.put("prompt", job.prompt); dto.put("status", job.status);
+        dto.put("model", job.model);
         dto.put("aspectRatio", job.aspectRatio); dto.put("resolution", job.resolution); dto.put("duration", job.duration); dto.put("resultUrl", generator.resultUrl(job));
         dto.put("downloadUrl", generator.downloadUrl(job));
         dto.put("error", job.errorMessage == null ? "" : job.errorMessage); dto.put("createdAt", job.createdAt);
@@ -602,6 +609,7 @@ class AdminController {
     private Map<String, Object> adminJobDto(AiJob job) {
         Map<String, Object> dto = new LinkedHashMap<>();
         dto.put("id", job.id); dto.put("provider", job.provider); dto.put("type", job.type); dto.put("prompt", job.prompt); dto.put("status", job.status);
+        dto.put("model", job.model);
         dto.put("resultUrl", generator.resultUrl(job)); dto.put("downloadUrl", generator.downloadUrl(job));
         dto.put("inGallery", job.resultObjectKey != null && media.findByObjectKey(job.resultObjectKey).isPresent());
         dto.put("error", job.errorMessage == null ? "" : job.errorMessage); dto.put("createdAt", job.createdAt);

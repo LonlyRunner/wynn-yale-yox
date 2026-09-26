@@ -88,6 +88,7 @@ class MediaItem {
 class AiJob {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) Long id;
     String provider;
+    String model;
     String type;
     @Column(length = 4000) String prompt;
     String status;

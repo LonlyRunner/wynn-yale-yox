@@ -113,6 +113,8 @@ body{background:radial-gradient(circle at 10% 8%,#ffe4df 0,transparent 23%),radi
 
 .studio-history{display:flex;align-items:end;flex-wrap:wrap;gap:12px;margin:22px 0 14px;min-width:0}.studio-history label{display:grid;flex:1 1 230px;min-width:0;gap:8px;color:#8b6c63;font-size:12px}.studio-history select{width:100%;min-width:0;max-width:100%;padding:10px 12px;border:1px solid #dec1b5;border-radius:12px;color:#654941;background:#fffaf5;text-overflow:ellipsis}.studio-history button{flex:0 0 auto;padding:10px 16px;border:1px solid #dec1b5;border-radius:12px;background:#fffaf5;color:#a56054;cursor:pointer}.studio-history button:disabled{opacity:.5;cursor:wait}
 
+.studio-options{flex-wrap:wrap}.studio-options label{min-width:0;max-width:100%}.studio-options .studio-model{flex:1 1 260px;grid-column:1/-1}.studio-options .studio-model select{width:100%;min-width:0;max-width:100%;text-overflow:ellipsis}.studio-model-note{margin:-10px 0 20px;color:#8b6c63;font-size:12px;line-height:1.6}.studio-model-note button{border:0;background:none;color:#a56054;text-decoration:underline;cursor:pointer}
+
 /* Final narrow-screen overrides: keep later component additions from restoring desktop grids. */
 @media(max-width:760px){
   html,body,#app{max-width:100%;overflow-x:hidden}

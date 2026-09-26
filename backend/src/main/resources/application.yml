@@ -46,6 +46,8 @@ app:
       api-key: ${RELAY_API_KEY:}
       image-model: ${RELAY_IMAGE_MODEL:grok-imagine-image-2.0}
       video-model: ${RELAY_VIDEO_MODEL:grok-imagine-video-1.5}
+      image-models: ${RELAY_IMAGE_MODELS:grok-imagine-image-2.0,grok-imagine-image,grok-imagine-image-quality}
+      video-models: ${RELAY_VIDEO_MODELS:grok-imagine-video-1.5,grok-imagine-video}
     chat:
       transcription-model: ${CHAT_TRANSCRIPTION_MODEL:whisper-1}
       deepseek:
