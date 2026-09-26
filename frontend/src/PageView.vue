@@ -183,12 +183,74 @@ async function copyGalleryPrompt(item:GalleryItem,index:number){const value=text
 const creatorMode=ref<'IMAGE'|'VIDEO'>('IMAGE'), prompt = ref('薄雾笼罩的火山山脊，第一视角低空掠过，电影感，冷色调，自然光。')
 const aspectRatio=ref('16:9'), resolution=ref('720p'), duration=ref(5)
 const quota=ref({owner:false,imageRemaining:true,videoRemaining:true}), currentJob=ref<AiJob>(), aiHistory=ref<AiJob[]>([])
+const studioSubmitting=ref(false), studioLoading=ref(false), studioNotice=ref(''), mediaLoadError=ref(false)
 let aiPollTimer:number|undefined
+let aiViewVersion=0
+const pendingJob=(job?:AiJob)=>!!job&&['QUEUED','GENERATING','SUBMITTING','PROCESSING'].includes(job.status)
+const studioBusy=computed(()=>studioSubmitting.value||studioLoading.value||pendingJob(currentJob.value))
+const studioStatus=computed(()=>{
+  if(studioNotice.value)return studioNotice.value
+  if(studioSubmitting.value)return text('正在生成并保存结果，请稍候…','Generating and saving your result…')
+  if(studioLoading.value)return text('正在读取生成记录…','Loading generation history…')
+  if(mediaLoadError.value)return text('生成已完成，但媒体加载失败。请点击刷新结果重新获取访问地址。','Generation completed, but the media could not load. Refresh the result to renew its URL.')
+  if(currentJob.value?.error)return currentJob.value.error
+  if(pendingJob(currentJob.value))return text('任务处理中，完成后会自动显示。','Processing. Your result will appear automatically.')
+  if(currentJob.value?.status==='COMPLETED')return currentJob.value.resultUrl?text('生成成功','Generation completed'):text('任务已完成，但结果文件不可用，请刷新结果或检查后台记录。','The job completed, but its file is unavailable. Refresh or check the admin record.')
+  if(currentJob.value?.status==='FAILED')return text('生成失败，请查看后台记录。','Generation failed. Check the admin record.')
+  return text('生成结果将在这里出现','Your result will appear here')
+})
 const quotaText=computed(()=>quota.value.owner?text('管理员不限次数','Unlimited owner access'):text(`访客额度：图片 ${quota.value.imageRemaining?'1':'0'} 次 · 视频 ${quota.value.videoRemaining?'1':'0'} 次`,`Guest allowance: ${quota.value.imageRemaining?'1':'0'} image · ${quota.value.videoRemaining?'1':'0'} video`))
 async function loadQuota(){try{quota.value=await api('/ai/quota')}catch{}}
 function aiError(error:unknown){if(error instanceof ApiError){try{const body=JSON.parse(error.message);return body.detail||body.message||body.error||error.message}catch{return error.message}}return error instanceof Error?error.message:text('生成失败','Generation failed')}
-async function pollJob(id:number){clearInterval(aiPollTimer);aiPollTimer=window.setInterval(async()=>{try{const job=await api<AiJob>(`/ai/jobs/${id}`);currentJob.value=job;if(['COMPLETED','FAILED'].includes(job.status)){clearInterval(aiPollTimer);busy.value=false;notice.value=job.error||job.status;await loadQuota()}}catch(error){clearInterval(aiPollTimer);busy.value=false;notice.value=aiError(error)}},4000)}
-async function generate(){busy.value=true;notice.value='';currentJob.value=undefined;try{const job=await api<AiJob>('/ai/jobs',{method:'POST',body:JSON.stringify({type:creatorMode.value,prompt:prompt.value,aspectRatio:aspectRatio.value,resolution:resolution.value,duration:duration.value})});currentJob.value=job;aiHistory.value.unshift(job);notice.value=job.error||job.status;if(job.status==='PROCESSING')pollJob(job.id);else{busy.value=false;await loadQuota()}}catch(error){busy.value=false;notice.value=aiError(error);await loadQuota()}}
+function showStudioJob(job:AiJob){currentJob.value=job;mediaLoadError.value=false;studioNotice.value='';const index=aiHistory.value.findIndex(item=>item.id===job.id);if(index<0)aiHistory.value.unshift(job);else aiHistory.value[index]=job}
+function pollJob(id:number,version=aiViewVersion,delay=4000){
+  clearTimeout(aiPollTimer)
+  aiPollTimer=window.setTimeout(async()=>{
+    if(version!==aiViewVersion||route.name!=='studio')return
+    try{
+      const job=await api<AiJob>(`/ai/jobs/${id}`)
+      if(version!==aiViewVersion||route.name!=='studio')return
+      showStudioJob(job)
+      if(pendingJob(job))pollJob(id,version);else await loadQuota()
+    }catch(error){
+      if(version!==aiViewVersion||route.name!=='studio')return
+      studioNotice.value=text('任务状态暂时读取失败，可点击刷新结果。','Could not refresh the job. Use Refresh result.')
+      if(error instanceof ApiError&&[401,403,404].includes(error.status)){currentJob.value=undefined;aiHistory.value=[]}
+      else pollJob(id,version,8000)
+    }
+  },delay)
+}
+async function loadStudioJobs(preferredId?:number){
+  if(studioSubmitting.value)return
+  const version=++aiViewVersion,type=creatorMode.value
+  clearTimeout(aiPollTimer);studioLoading.value=true;studioNotice.value=''
+  try{
+    const jobs=await api<AiJob[]>(`/ai/jobs?type=${type}`)
+    if(version!==aiViewVersion||route.name!=='studio')return
+    aiHistory.value=jobs
+    const job=jobs.find(item=>item.id===preferredId)||jobs[0]
+    currentJob.value=job;mediaLoadError.value=false
+    if(job&&pendingJob(job))pollJob(job.id,version)
+  }catch(error){if(version===aiViewVersion)studioNotice.value=text('生成记录读取失败，请点击刷新结果。','Could not load generation history. Use Refresh result.')}
+  finally{if(version===aiViewVersion)studioLoading.value=false}
+}
+function selectStudioJob(id:number){
+  const job=aiHistory.value.find(item=>item.id===id)
+  if(!job)return
+  clearTimeout(aiPollTimer);const version=++aiViewVersion;showStudioJob(job)
+  if(pendingJob(job))pollJob(job.id,version)
+}
+async function generate(){
+  if(studioBusy.value||!prompt.value.trim())return
+  const version=++aiViewVersion
+  clearTimeout(aiPollTimer);studioSubmitting.value=true;studioNotice.value='';currentJob.value=undefined;mediaLoadError.value=false
+  try{
+    const job=await api<AiJob>('/ai/jobs',{method:'POST',body:JSON.stringify({type:creatorMode.value,prompt:prompt.value,aspectRatio:aspectRatio.value,resolution:resolution.value,duration:duration.value})})
+    if(version!==aiViewVersion||route.name!=='studio')return
+    showStudioJob(job);if(pendingJob(job))pollJob(job.id,version)
+  }catch(error){if(version===aiViewVersion)studioNotice.value=aiError(error)+text('。后台可能仍在处理，请先刷新结果，避免重复生成。',' The server may still be processing. Refresh the result before generating again.')}
+  finally{studioSubmitting.value=false;await loadQuota();if(version!==aiViewVersion&&route.name==='studio')loadStudioJobs()}
+}
 
 const username=ref('wynnyaleyox'), password=ref('')
 async function login(){busy.value=true;notice.value='';try{await api('/auth/login',{method:'POST',body:JSON.stringify({username:username.value.trim(),password:password.value.trim()})});sessionStorage.setItem('wynn-auth','1');chatOwner.value=true;chatHistoryLoaded.value=false;router.push(String(route.query.redirect||'/admin'))}catch(error){notice.value=error instanceof ApiError&&error.status===0?text('登录服务未启动，请先启动后端','Login service is unavailable. Start the backend first.'):error instanceof ApiError&&(error.status===401||error.status===403)?text('账号或密码错误，请检查大小写并重新输入','Invalid credentials; check capitalization and try again'):text('登录失败，请稍后重试','Sign-in failed. Try again shortly.')}finally{busy.value=false}}
@@ -199,7 +261,7 @@ async function loadPosts(query=''){try{const data=await api<Array<Record<string,
 async function searchPosts(){await loadPosts(blogSearch.value.trim())}
 async function loadArticle(){if(route.name!=='article')return;await loadPosts();try{comments.value=await api(`/public/posts/${route.params.slug}/comments`)}catch{comments.value=[]}}
 async function submitComment(){commentNotice.value='';try{await api(`/public/posts/${route.params.slug}/comments`,{method:'POST',body:JSON.stringify(commentForm.value)});commentForm.value={author:'',email:'',content:''};commentNotice.value=text('评论已提交，审核后显示。','Comment submitted for review.')}catch(error){commentNotice.value=aiError(error)}}
-async function loadPublic(){loadPosts();api<JournalItem[]>('/public/journals').then(v=>journals.value=v).catch(()=>{});api<Profile>('/public/profile').then(v=>profile.value=v).catch(()=>{});api<GalleryItem[]>('/public/media').then(v=>{if(v.length)updateGallery(v.map((item,index)=>{const fallback=fallbackGallery.find(local=>item.objectKey?.endsWith(local.url.split('/').pop()||''))||fallbackGallery[index];return{...item,promptZh:item.promptZh||fallback?.promptZh,promptEn:item.promptEn||fallback?.promptEn}}))}).catch(()=>{});if(route.name==='studio')loadQuota();if(route.name==='article')loadArticle()}
+async function loadPublic(){loadPosts();api<JournalItem[]>('/public/journals').then(v=>journals.value=v).catch(()=>{});api<Profile>('/public/profile').then(v=>profile.value=v).catch(()=>{});api<GalleryItem[]>('/public/media').then(v=>{if(v.length)updateGallery(v.map((item,index)=>{const fallback=fallbackGallery.find(local=>item.objectKey?.endsWith(local.url.split('/').pop()||''))||fallbackGallery[index];return{...item,promptZh:item.promptZh||fallback?.promptZh,promptEn:item.promptEn||fallback?.promptEn}}))}).catch(()=>{});if(route.name==='studio'){loadQuota();loadStudioJobs(currentJob.value?.id)};if(route.name==='article')loadArticle()}
 
 const adminTab=ref<'overview'|'posts'|'journals'|'media'|'ai'|'knowledge'|'comments'>('overview'), adminPosts=ref<AdminPost[]>([]), adminJournals=ref<JournalItem[]>([]), adminComments=ref<AdminComment[]>([]), adminJobs=ref<AiJob[]>([]), adminKnowledge=ref<AdminKnowledge[]>([])
 const emptyPost=():AdminPost=>({slug:'',titleZh:'',titleEn:'',category:'TECH',tags:'',summaryZh:'',summaryEn:'',contentZh:'',contentEn:'',coverObjectKey:'',published:false})
@@ -292,8 +354,9 @@ function restartStack(){board.value=createStackBoard();score.value=0;stackMoveTi
 function key(event:KeyboardEvent){if(gameId.value==='pelican'&&(event.key===' '||event.key==='ArrowUp')){event.preventDefault();jumpPelican()}if(gameId.value==='stack'&&event.key.startsWith('Arrow')){event.preventDefault();stackMove(event.key.replace('Arrow','').toLowerCase() as MoveDirection)}}
 function resetGame(){clearInterval(timer.value);playing.value=false;score.value=0;pelicanJumping.value=false;memoryLevel.value=1;memory.value=createMemoryDeck(1);openCards.value=[];memoryBusy.value=false;board.value=createStackBoard();stackMoveTick.value=0}
 watch(()=>[adminTab.value,categorySeries.value,aiStatusSeries.value,enabledKnowledgePercent.value],renderAdminCharts,{deep:true})
-onMounted(()=>{addEventListener('keydown',key);addEventListener('resize',resizeAdminCharts);addEventListener('resize',updateCompactMusicPlayer);updateCompactMusicPlayer();refreshChatOwner();refreshChatVoices();if('speechSynthesis' in window)window.speechSynthesis.onvoiceschanged=refreshChatVoices;loadPublic();if(route.name==='admin')loadAdmin();if(route.name==='game'&&gameId.value==='pelican')loadChatModels()});onBeforeUnmount(()=>{removeEventListener('keydown',key);removeEventListener('resize',resizeAdminCharts);removeEventListener('resize',updateCompactMusicPlayer);disposeAdminCharts();clearInterval(timer.value);clearInterval(aiPollTimer);if('speechSynthesis' in window)window.speechSynthesis.onvoiceschanged=null;window.speechSynthesis?.cancel()})
-watch(()=>route.fullPath,()=>{mobileOpen.value=false;notice.value='';soundOn.value=false;clearInterval(aiPollTimer);if(route.name==='game'){resetGame();if(gameId.value==='pelican')loadChatModels()}else{playing.value=false;clearInterval(timer.value)}loadPublic();if(route.name==='admin')loadAdmin()})
+onMounted(()=>{addEventListener('keydown',key);addEventListener('resize',resizeAdminCharts);addEventListener('resize',updateCompactMusicPlayer);updateCompactMusicPlayer();refreshChatOwner();refreshChatVoices();if('speechSynthesis' in window)window.speechSynthesis.onvoiceschanged=refreshChatVoices;loadPublic();if(route.name==='admin')loadAdmin();if(route.name==='game'&&gameId.value==='pelican')loadChatModels()});onBeforeUnmount(()=>{removeEventListener('keydown',key);removeEventListener('resize',resizeAdminCharts);removeEventListener('resize',updateCompactMusicPlayer);disposeAdminCharts();clearInterval(timer.value);clearTimeout(aiPollTimer);aiViewVersion++;studioLoading.value=false;if('speechSynthesis' in window)window.speechSynthesis.onvoiceschanged=null;window.speechSynthesis?.cancel()})
+watch(creatorMode,()=>{currentJob.value=undefined;aiHistory.value=[];loadStudioJobs()})
+watch(()=>route.fullPath,()=>{mobileOpen.value=false;notice.value='';soundOn.value=false;clearTimeout(aiPollTimer);aiViewVersion++;studioLoading.value=false;if(route.name==='game'){resetGame();if(gameId.value==='pelican')loadChatModels()}else{playing.value=false;clearInterval(timer.value)}loadPublic();if(route.name==='admin')loadAdmin()})
 </script>
 
 <template>
@@ -351,7 +414,26 @@ watch(()=>route.fullPath,()=>{mobileOpen.value=false;notice.value='';soundOn.val
 
   <template v-else-if="route.name==='gallery'"><section class="page-head"><small>VISUAL ARCHIVE</small><h1>{{text('影像收藏','Visual Archive')}}</h1><p>{{text('点击照片即可翻转，查看并复制它的创作提示词。','Tap a photo to flip it, then view and copy its creation prompt.')}}</p></section><section class="gallery user-gallery"><figure v-for="(item,i) in galleryItems" :key="item.id||item.url" :class="{'gallery-portrait':i%5===4,flipped:flippedGallery===galleryKey(item,i)}" tabindex="0" @click="flipGallery(item,i)" @keyup.enter="flipGallery(item,i)"><div class="gallery-flip"><div class="gallery-face gallery-front"><img :src="previewImageUrl(item,480)" :srcset="previewSrcset(item)" sizes="(max-width: 760px) calc(100vw - 32px), (max-width: 960px) 50vw, 33vw" :alt="text(item.titleZh,item.titleEn)" loading="lazy" decoding="async" @error="restoreOriginalImage($event,item.url)"><figcaption>{{text(item.titleZh,item.titleEn)}} · {{text('点击翻转','FLIP')}}</figcaption></div><div class="gallery-face gallery-back" @click.stop="flippedGallery=undefined"><small>IMAGE PROMPT · {{String(i+1).padStart(2,'0')}}</small><h2>{{text(item.titleZh,item.titleEn)}}</h2><p>{{text(item.promptZh||'正在生成提示词…',item.promptEn||'Generating prompt…')}}</p><button @click.stop="copyGalleryPrompt(item,i)">{{copiedGallery===galleryKey(item,i)?text('已复制 ✓','Copied ✓'):text('复制提示词','Copy prompt')}}</button><span>{{text('点击空白处返回照片','Tap elsewhere to return')}}</span></div></div></figure></section></template>
 
-  <section v-else-if="route.name==='studio'" class="studio"><aside><b>● {{quota.owner?text('管理员模式','Owner mode'):text('公开试用','Public trial')}}</b><button :class="{on:creatorMode==='IMAGE'}" @click="creatorMode='IMAGE'">✦ {{text('图片生成','Image')}}</button><button :class="{on:creatorMode==='VIDEO'}" @click="creatorMode='VIDEO'">▶ {{text('视频生成','Video')}}</button><span>{{quotaText}}</span><RouterLink v-if="!quota.owner" to="/login?redirect=/studio">{{text('管理员登录 →','Owner sign in →')}}</RouterLink><span>{{text('结果自动保存至 OSS','Results saved to OSS')}}</span></aside><div class="studio-main"><small>PUBLIC AI STUDIO · RELAY + QWEN FALLBACK</small><h1>{{creatorMode==='IMAGE'?text('把想法变成画面','Turn ideas into images'):text('让画面开始流动','Bring a scene to life')}}</h1><div class="studio-options"><label>{{text('画面比例','Aspect ratio')}}<select v-model="aspectRatio"><option>16:9</option><option>9:16</option><option>1:1</option><option>4:3</option><option>3:4</option></select></label><label v-if="creatorMode==='VIDEO'">{{text('清晰度','Resolution')}}<select v-model="resolution"><option>480p</option><option>720p</option><option>1080p</option></select></label><label v-if="creatorMode==='VIDEO'">{{text('时长','Duration')}}<input v-model.number="duration" type="number" min="1" max="15"><span>s</span></label></div><div class="prompt"><textarea v-model="prompt" :placeholder="text('描述你想生成的内容','Describe what you want to create')"></textarea><footer><span>{{aspectRatio}} · {{creatorMode==='VIDEO'?`${resolution} · ${duration}s`:'AI IMAGE'}}</span><button @click="generate" :disabled="busy||(!quota.owner&&creatorMode==='IMAGE'&&!quota.imageRemaining)||(!quota.owner&&creatorMode==='VIDEO'&&!quota.videoRemaining)">{{busy?text('生成中…','Generating…'):text('开始生成 ↗','Generate ↗')}}</button></footer></div><div class="result generated-result"><img v-if="!currentJob?.resultUrl" src="/media/fluffy-kitten.webp"><img v-else-if="currentJob.type==='IMAGE'" :src="currentJob.resultUrl" :alt="currentJob.prompt" decoding="async"><video v-else :src="currentJob.resultUrl" controls playsinline></video><p>{{notice||text('生成结果将在这里出现','Your result will appear here')}}</p><div v-if="currentJob?.resultUrl" class="generated-actions"><a class="download-result" :href="currentJob.downloadUrl||currentJob.resultUrl" download>{{currentJob.type==='VIDEO'?'▸':'↓'}} {{text(currentJob.type==='VIDEO'?'下载视频':'下载图片',currentJob.type==='VIDEO'?'Download video':'Download image')}}</a><button v-if="quota.owner&&currentJob.type==='IMAGE'" :disabled="currentJob.inGallery" @click="addJobToGallery(currentJob)">{{currentJob.inGallery?text('已在影像库','In gallery'):text('加入影像库','Add to gallery')}}</button></div><small>{{text('访客各可试用一次；管理员登录后不限次数','Guests receive one image and one video; owner access is unlimited')}}</small></div></div></section>
+  <section v-else-if="route.name==='studio'" class="studio">
+    <aside><b>● {{quota.owner?text('管理员模式','Owner mode'):text('公开试用','Public trial')}}</b><button :class="{on:creatorMode==='IMAGE'}" :disabled="studioSubmitting||studioLoading" @click="creatorMode='IMAGE'">✦ {{text('图片生成','Image')}}</button><button :class="{on:creatorMode==='VIDEO'}" :disabled="studioSubmitting||studioLoading" @click="creatorMode='VIDEO'">▶ {{text('视频生成','Video')}}</button><span>{{quotaText}}</span><RouterLink v-if="!quota.owner" to="/login?redirect=/studio">{{text('管理员登录 →','Owner sign in →')}}</RouterLink><span>{{text('结果自动保存至 OSS','Results saved to OSS')}}</span></aside>
+    <div class="studio-main">
+      <small>PUBLIC AI STUDIO · RELAY + QWEN FALLBACK</small><h1>{{creatorMode==='IMAGE'?text('把想法变成画面','Turn ideas into images'):text('让画面开始流动','Bring a scene to life')}}</h1>
+      <div class="studio-options"><label>{{text('画面比例','Aspect ratio')}}<select v-model="aspectRatio"><option>16:9</option><option>9:16</option><option>1:1</option><option>4:3</option><option>3:4</option></select></label><label v-if="creatorMode==='VIDEO'">{{text('清晰度','Resolution')}}<select v-model="resolution"><option>480p</option><option>720p</option><option>1080p</option></select></label><label v-if="creatorMode==='VIDEO'">{{text('时长','Duration')}}<input v-model.number="duration" type="number" min="1" max="15"><span>s</span></label></div>
+      <div class="prompt"><textarea v-model="prompt" :placeholder="text('描述你想生成的内容','Describe what you want to create')"></textarea><footer><span>{{aspectRatio}} · {{creatorMode==='VIDEO'?`${resolution} · ${duration}s`:'AI IMAGE'}}</span><button @click="generate" :disabled="studioBusy||!prompt.trim()||(!quota.owner&&creatorMode==='IMAGE'&&!quota.imageRemaining)||(!quota.owner&&creatorMode==='VIDEO'&&!quota.videoRemaining)">{{studioBusy?text('处理中…','Processing…'):text('开始生成 ↗','Generate ↗')}}</button></footer></div>
+      <div class="studio-history">
+        <label v-if="aiHistory.length">{{text('最近生成记录','Recent generations')}}<select :value="currentJob?.id||''" :disabled="studioSubmitting||studioLoading" @change="selectStudioJob(Number(($event.target as HTMLSelectElement).value))"><option value="" disabled>{{text('请选择记录','Choose a result')}}</option><option v-for="job in aiHistory" :key="job.id" :value="job.id">#{{job.id}} · {{job.prompt.slice(0,48)}}</option></select></label>
+        <button type="button" :disabled="studioSubmitting||studioLoading" @click="loadStudioJobs(currentJob?.id)">{{studioLoading?text('读取中…','Loading…'):text('刷新结果','Refresh result')}}</button>
+      </div>
+      <div class="result generated-result" :aria-busy="studioBusy">
+        <img v-if="!currentJob?.resultUrl||mediaLoadError" src="/media/fluffy-kitten.webp" alt="">
+        <img v-else-if="currentJob.type==='IMAGE'" :src="currentJob.resultUrl" :alt="currentJob.prompt" decoding="async" @error="mediaLoadError=true">
+        <video v-else :src="currentJob.resultUrl" controls playsinline @error="mediaLoadError=true"></video>
+        <p role="status">{{studioStatus}}</p>
+        <div v-if="currentJob?.resultUrl" class="generated-actions"><a class="download-result" :href="currentJob.downloadUrl||currentJob.resultUrl" download>{{currentJob.type==='VIDEO'?'▸':'↓'}} {{text(currentJob.type==='VIDEO'?'下载视频':'下载图片',currentJob.type==='VIDEO'?'Download video':'Download image')}}</a><button v-if="quota.owner&&currentJob.type==='IMAGE'" :disabled="currentJob.inGallery" @click="addJobToGallery(currentJob)">{{currentJob.inGallery?text('已在影像库','In gallery'):text('加入影像库','Add to gallery')}}</button></div>
+        <small>{{text('访客各可试用一次；管理员登录后不限次数','Guests receive one image and one video; owner access is unlimited')}}</small>
+      </div>
+    </div>
+  </section>
 
   <section v-else-if="route.name==='about'" class="about"><div class="portrait profile-portrait"><img src="/media/profile-avatar.webp" :alt="profile.displayName"><span>{{profile.displayName}}</span></div><div class="about-copy"><small>ABOUT {{profile.realName.toUpperCase()}}</small><img class="signature" src="/media/wynn-signature.webp"><h1>{{text('在代码与生活之间，保留自由生长的空间。','Keep room to grow between code and life.')}}</h1><p>{{text(profile.bioZh,profile.bioEn)}}</p><dl><div><dt>{{text('城市','City')}}</dt><dd>{{text(profile.cityZh,profile.cityEn)}}</dd></div><div><dt>{{text('邮箱','Email')}}</dt><dd><a :href="`mailto:${profile.email}`">{{profile.email}}</a></dd></div><div><dt>{{text('代码','Code')}}</dt><dd><a :href="profile.github" target="_blank">GitHub ↗</a> · <a :href="profile.gitee" target="_blank">Gitee ↗</a></dd></div><div><dt>{{text('闲鱼','Xianyu')}}</dt><dd><a :href="profile.xianyu" target="_blank">Lonely__Runner ↗</a></dd></div><div><dt>{{text('微信','WeChat')}}</dt><dd>{{profile.wechat}}</dd></div><div><dt>QQ</dt><dd>3069226178</dd></div></dl><button :class="['cat about-cat',{dragging:catDragging}]" :style="catStyle" :aria-label="text('拖动小猫','Drag kitten')" @pointerdown="startCatDrag" @pointermove="moveCat" @pointerup="endCatDrag" @pointercancel="endCatDrag" @click="catClick"><img src="/media/fluffy-kitten.webp" draggable="false"></button></div></section>
 

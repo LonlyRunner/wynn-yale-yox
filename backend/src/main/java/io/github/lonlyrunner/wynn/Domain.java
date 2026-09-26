@@ -207,6 +207,8 @@ interface MediaRepository extends JpaRepository<MediaItem, Long> {
 
 interface AiJobRepository extends JpaRepository<AiJob, Long> {
     List<AiJob> findAllByOrderByCreatedAtDesc();
+    List<AiJob> findTop20ByTypeOrderByCreatedAtDesc(String type);
+    List<AiJob> findTop20ByGuestIdAndTypeOrderByCreatedAtDesc(String guestId, String type);
     List<AiJob> findByResultObjectKey(String resultObjectKey);
 }
 

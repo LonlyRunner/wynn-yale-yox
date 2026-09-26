@@ -343,6 +343,18 @@ class AiController {
         return Map.of("owner", false, "imageRemaining", !quota.imageUsed, "videoRemaining", !quota.videoUsed);
     }
 
+    @GetMapping("/jobs")
+    List<Map<String, Object>> recentJobs(@RequestParam(defaultValue = "IMAGE") String type, Authentication auth,
+                                        HttpServletRequest request, HttpServletResponse response) {
+        String normalized = type.toUpperCase(Locale.ROOT);
+        if (!List.of("IMAGE", "VIDEO").contains(normalized)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "不支持的创作类型");
+        response.setHeader(HttpHeaders.CACHE_CONTROL, "no-store");
+        List<AiJob> recent = AuthController.isOwner(auth)
+            ? jobs.findTop20ByTypeOrderByCreatedAtDesc(normalized)
+            : jobs.findTop20ByGuestIdAndTypeOrderByCreatedAtDesc(guestId(request, response), normalized);
+        return recent.stream().map(this::jobDto).toList();
+    }
+
     @PostMapping("/jobs")
     @Transactional
     Object create(@Valid @RequestBody AiJobRequest requestBody, Authentication auth, HttpServletRequest request, HttpServletResponse response) {
