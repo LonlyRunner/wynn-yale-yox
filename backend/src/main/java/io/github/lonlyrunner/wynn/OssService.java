@@ -10,9 +10,11 @@ import com.aliyun.oss.model.ResponseHeaderOverrides;
 import jakarta.annotation.PreDestroy;
 import java.io.ByteArrayInputStream;
 import java.time.Duration;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.http.ContentDisposition;
 
 @Service
 class OssService {
@@ -49,7 +51,8 @@ class OssService {
         GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucket, objectKey, HttpMethod.GET);
         request.setExpiration(new Date(System.currentTimeMillis() + Duration.ofHours(1).toMillis()));
         ResponseHeaderOverrides headers = new ResponseHeaderOverrides();
-        headers.setContentDisposition("attachment; filename=\"" + filename.replaceAll("[^a-zA-Z0-9._-]", "-") + "\"");
+        headers.setContentDisposition(ContentDisposition.attachment()
+            .filename(filename.replaceAll("[\\r\\n]", ""), StandardCharsets.UTF_8).build().toString());
         request.setResponseHeaders(headers);
         return client.generatePresignedUrl(request).toString();
     }

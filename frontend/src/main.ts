@@ -11,6 +11,7 @@ const routes = [
   { path: '/journal', name: 'journal', component: PageView },
   { path: '/gallery', name: 'gallery', component: PageView },
   { path: '/share', name: 'share', component: PageView },
+  { path: '/guestbook', name: 'guestbook', component: PageView },
   { path: '/studio', name: 'studio', component: PageView },
   { path: '/about', name: 'about', component: PageView },
   { path: '/privacy', name: 'privacy', component: PageView },

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -230,3 +231,32 @@ interface JournalRepository extends JpaRepository<JournalEntry, Long> {
 interface ChatHistoryRepository extends JpaRepository<ChatHistoryEntry, Long> {
     List<ChatHistoryEntry> findAllByOrderByCreatedAtAsc();
 }
+
+@Entity
+@Table(name = "guestbook_entries")
+class GuestbookEntry {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY) Long id;
+    @Column(nullable = false, length = 80) String author;
+    @Column(nullable = false, length = 3000) String content;
+    @Column(length = 200) String contact;
+    Instant createdAt = Instant.now();
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "guestbook_attachments", joinColumns = @JoinColumn(name = "entry_id"))
+    @OrderColumn(name = "attachment_order")
+    List<GuestbookAttachment> attachments = new ArrayList<>();
+}
+
+@Embeddable
+class GuestbookAttachment {
+    @Column(nullable = false) String objectKey;
+    @Column(nullable = false, length = 180) String filename;
+    @Column(nullable = false) String contentType;
+    long size;
+
+    protected GuestbookAttachment() {}
+    GuestbookAttachment(String objectKey, String filename, String contentType, long size) {
+        this.objectKey = objectKey; this.filename = filename; this.contentType = contentType; this.size = size;
+    }
+}
+
+interface GuestbookRepository extends JpaRepository<GuestbookEntry, Long> {}
