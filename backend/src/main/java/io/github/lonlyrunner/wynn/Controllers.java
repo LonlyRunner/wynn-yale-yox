@@ -207,6 +207,7 @@ class PublicController {
         dto.put("id", item.id); dto.put("titleZh", value(item.titleZh)); dto.put("titleEn", value(item.titleEn));
         dto.put("contentZh", value(item.contentZh)); dto.put("contentEn", value(item.contentEn)); dto.put("mood", value(item.mood));
         dto.put("happenedAt", item.happenedAt); dto.put("createdAt", item.createdAt);
+        dto.put("images", JournalImagesController.imageDtos(item, oss));
         return dto;
     }
 
@@ -586,7 +587,11 @@ class AdminController {
 
     @DeleteMapping("/journals/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    void deleteJournal(@PathVariable Long id) { journals.deleteById(id); }
+    void deleteJournal(@PathVariable Long id) {
+        JournalEntry entry = journals.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        for (GuestbookAttachment image : entry.images) oss.delete(image.objectKey);
+        journals.delete(entry);
+    }
 
     @PostMapping(value = "/knowledge/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     Object importKnowledge(@RequestPart("file") MultipartFile file) { return importDocument(file); }
@@ -640,6 +645,7 @@ class AdminController {
         Map<String, Object> dto = new LinkedHashMap<>();
         dto.put("id", item.id); dto.put("titleZh", item.titleZh); dto.put("titleEn", Objects.requireNonNullElse(item.titleEn, "")); dto.put("contentZh", item.contentZh); dto.put("contentEn", Objects.requireNonNullElse(item.contentEn, ""));
         dto.put("mood", Objects.requireNonNullElse(item.mood, "")); dto.put("happenedAt", item.happenedAt); dto.put("published", item.published); dto.put("createdAt", item.createdAt); dto.put("updatedAt", item.updatedAt);
+        dto.put("images", JournalImagesController.imageDtos(item, oss));
         return dto;
     }
 

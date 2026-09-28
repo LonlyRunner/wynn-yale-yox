@@ -167,6 +167,11 @@ class JournalEntry {
     Instant updatedAt = Instant.now();
 
     protected JournalEntry() {}
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "journal_images", joinColumns = @JoinColumn(name = "entry_id"))
+    @OrderColumn(name = "image_order")
+    List<GuestbookAttachment> images = new ArrayList<>();
 }
 
 @Entity

@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import './style.css'
 import App from './App.vue'
 import PageView from './PageView.vue'
+import { randomUUID } from './api'
 
 const routes = [
   { path: '/', name: 'home', component: PageView },
@@ -33,5 +34,13 @@ router.beforeEach(async to => {
   } catch { /* redirect below */ }
   sessionStorage.removeItem('wynn-auth')
   return { name: 'login', query: { redirect: to.fullPath } }
+})
+// Count public page navigation, excluding admin and login; never send query strings.
+let visitQueue = Promise.resolve(), firstVisit = true
+router.afterEach((to, _from, failure) => {
+  if (failure || ['admin','login'].includes(String(to.name))) return
+  const referrer = firstVisit ? document.referrer.slice(0,2000) : ''; firstVisit = false
+  const body = JSON.stringify({eventId:randomUUID(),path:to.path,referrer})
+  visitQueue = visitQueue.then(async () => { await fetch('/api/public/visits',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body}) }).catch(()=>{})
 })
 createApp(App).use(router).mount('#app')

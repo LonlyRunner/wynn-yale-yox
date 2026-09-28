@@ -201,3 +201,5 @@ body{background:radial-gradient(circle at 10% 8%,#ffe4df 0,transparent 23%),radi
   .cat-chat form .chat-send{padding-inline:11px}
   .media-admin-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+.service-paused{margin:12px 0;padding:12px 18px;border:1px solid #e6bdad;border-radius:16px;background:#fff1dc;color:#8b614d;font-size:14px;line-height:1.6}.cat-chat .service-paused{flex-shrink:0;margin:10px 16px}.journal-image-editor{min-width:0}.journal-image-editor>p{font-size:14px;line-height:1.6;color:#96796d}.journal-image-editor .file-button{display:inline-flex;margin:10px 0}.journal-copy{min-width:0}
