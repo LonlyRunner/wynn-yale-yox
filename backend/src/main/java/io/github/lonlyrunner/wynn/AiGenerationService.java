@@ -10,10 +10,12 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.apache.tika.Tika;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.http.HttpStatus;
@@ -84,18 +86,14 @@ class AiGenerationService {
         job.status = "GENERATING";
         jobs.save(job);
         try {
-            String outputUrl;
             try {
-                boolean qwen = "qwen".equals(job.provider);
-                outputUrl = requestImage(qwen ? qwenBaseUrl : relayBaseUrl, qwen ? qwenApiKey : relayApiKey,
-                    job.model, job.prompt, job.aspectRatio, qwen);
+                requestAndStoreImage(job, "qwen".equals(job.provider));
             } catch (Exception relayFailure) {
                 if (!automatic || !"relay".equals(job.provider) || !configured(qwenBaseUrl, qwenApiKey)) throw relayFailure;
                 job.provider = "qwen-fallback";
                 job.model = qwenImageModel;
-                outputUrl = requestImage(qwenBaseUrl, qwenApiKey, job.model, job.prompt, job.aspectRatio, true);
+                requestAndStoreImage(job, true);
             }
-            storeRemoteMedia(job, outputUrl, "image/jpeg", "jpg");
             job.status = "COMPLETED";
             job.errorMessage = null;
         } catch (Exception error) {
@@ -187,19 +185,34 @@ class AiGenerationService {
         return Map.of("promptZh", zh, "promptEn", en);
     }
 
-    private String requestImage(String baseUrl, String apiKey, String model, String prompt, String aspectRatio, boolean qwen) throws Exception {
+    private void requestAndStoreImage(AiJob job, boolean qwen) throws Exception {
+        String baseUrl = qwen ? qwenBaseUrl : relayBaseUrl;
+        String apiKey = qwen ? qwenApiKey : relayApiKey;
         requireConfig(baseUrl, apiKey, qwen ? "Qwen" : "Relay");
         Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("model", model);
-        payload.put("prompt", prompt);
+        payload.put("model", job.model);
+        payload.put("prompt", job.prompt);
         payload.put("n", 1);
-        payload.put("response_format", "url");
-        if (qwen) payload.put("size", qwenSize(aspectRatio));
-        else payload.put("aspect_ratio", aspectRatio == null ? "1:1" : aspectRatio);
+        // Receiving Grok's image bytes avoids a second request to its temporary image host.
+        payload.put("response_format", !qwen && job.model.startsWith("grok-imagine-image") && oss.configured() ? "b64_json" : "url");
+        if (qwen) payload.put("size", qwenSize(job.aspectRatio));
+        else payload.put("aspect_ratio", job.aspectRatio == null ? "1:1" : job.aspectRatio);
         JsonNode response = postJson(apiUrl(baseUrl, "/images/generations"), apiKey, payload);
+        String encoded = response.path("data").path(0).path("b64_json").asText("");
+        if (!encoded.isBlank()) {
+            if (encoded.length() > 40 * 1024 * 1024) throw new IllegalStateException("生成图片超过 30MB 限制");
+            byte[] bytes;
+            try { bytes = Base64.getDecoder().decode(encoded); }
+            catch (IllegalArgumentException error) { throw new IllegalStateException("图片服务返回了无效的 Base64 数据"); }
+            String contentType = new Tika().detect(bytes);
+            if (!List.of("image/jpeg", "image/png", "image/webp").contains(contentType))
+                throw new IllegalStateException("图片服务返回的数据不是有效的图片格式");
+            storeInOss(job, bytes, contentType, "jpg");
+            return;
+        }
         String url = firstMediaUrl(response);
-        if (url == null) throw new IllegalStateException("图片服务没有返回结果地址");
-        return url;
+        if (url == null) throw new IllegalStateException("图片服务没有返回图片数据或结果地址");
+        storeRemoteMedia(job, url, "image/jpeg", "jpg");
     }
 
     private JsonNode postJson(String url, String apiKey, Object payload) throws Exception {
@@ -246,16 +259,20 @@ class AiGenerationService {
         HttpResponse<byte[]> response = http.send(request, HttpResponse.BodyHandlers.ofByteArray());
         if (response.statusCode() < 200 || response.statusCode() >= 300) throw new IllegalStateException("生成结果下载失败");
         String contentType = response.headers().firstValue("Content-Type").orElse(fallbackType).split(";")[0];
-        String extension = extension(contentType, fallbackExtension);
-        String folder = "VIDEO".equals(job.type) ? "videos" : "images";
         if (oss.configured()) {
-            String key = "ai-generated/" + folder + "/" + UUID.randomUUID() + "." + extension;
-            oss.put(key, response.body(), contentType);
-            job.resultObjectKey = key;
-            job.resultUrl = null;
+            storeInOss(job, response.body(), contentType, fallbackExtension);
         } else {
             job.resultUrl = url;
         }
+    }
+
+    private void storeInOss(AiJob job, byte[] bytes, String contentType, String fallbackExtension) {
+        if (!oss.configured()) throw new IllegalStateException("请配置 OSS 后再保存生成图片数据");
+        String folder = "VIDEO".equals(job.type) ? "videos" : "images";
+        String key = "ai-generated/" + folder + "/" + UUID.randomUUID() + "." + extension(contentType, fallbackExtension);
+        oss.put(key, bytes, contentType);
+        job.resultObjectKey = key;
+        job.resultUrl = null;
     }
 
     private String firstMediaUrl(JsonNode node) {

@@ -67,6 +67,8 @@ AI 工作室公开可见。匿名浏览器可生成一张图片和一段视频�
 
 创作模型菜单从 `/api/ai/models` 读取已配置线路的模型。`RELAY_IMAGE_MODEL`、`RELAY_VIDEO_MODEL` 指定默认模型；`RELAY_IMAGE_MODELS`、`RELAY_VIDEO_MODELS` 使用逗号分隔其他可选模型，需确认支持该中转的 `/images/generations`、`/videos/generations` 与视频查询接口。配置千问后，还可直接选择 `QWEN_IMAGE_MODEL`。只有图片的“自动选择”会回退；手动选择失败后不会换模型。后端在占用访客额度前校验模型及图片/视频类型，生成记录保存实际使用的模型；旧记录没有模型字段时继续展示原来的服务线路。
 
+默认中转创作模型仅包含已确认支持的 `grok-imagine-image-2.0` 和 `grok-imagine-video-1.5`。配置 OSS 后，Grok 生图使用 `b64_json` 返回图片数据，校验格式后直接保存到 OSS，避免服务器无法连接临时图片域名而丢失结果。图片自动模式也会在结果下载或保存失败时尝试千问；手动模式仍保留原模型并报告失败。
+
 团子聊天默认使用 `DEEPSEEK_CHAT_MODEL=deepseek-v3.2`。未单独填写 `DEEPSEEK_BASE_URL` 和 `DEEPSEEK_API_KEY` 时，会复用百炼兼容接口与 `QWEN_API_KEY`；模型下拉菜单还提供 `QWEN_CHAT_MODEL=qwen-plus`。如果改用 DeepSeek 官方或其他兼容服务，只需在 `.env` 中填写对应的 DeepSeek 地址、密钥和模型名。
 
 可通过 `CHAT_RELAY_BASE_URL`、`CHAT_RELAY_API_KEY` 和 `CHAT_RELAY_MODELS` 为团子增加独立的 OpenAI 兼容中转服务。模型列表使用逗号分隔；前端会把这些模型加入同一个切换菜单，后端会校验模型必须在配置列表中。
