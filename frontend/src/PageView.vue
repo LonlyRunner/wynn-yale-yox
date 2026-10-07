@@ -105,15 +105,21 @@ function restoreOriginalImage(event:Event,url:string){
   if(image.src!==original)image.src=url
 }
 
-const fallbackPosts:PostCard[] = [
-  { slug:'reliable-agent', tag:'AI ENGINEERING', zh:'从一次对话到一个可靠的 Agent', en:'From a Conversation to a Reliable Agent', date:'2026.06.04' },
-  { slug:'model-routing', tag:'SPRING AI', zh:'多模型路由的简单实现', en:'A Simple Multi-model Router', date:'2026.05.26' },
-  { slug:'context', tag:'JAVA', zh:'并发任务中的上下文传递', en:'Context Propagation in Concurrent Tasks', date:'2026.05.18' },
-]
-const posts = ref<PostCard[]>(fallbackPosts)
+const posts = ref<PostCard[]>([])
+const postsLoading = ref(false), postsError = ref(false)
 const journals = ref<JournalItem[]>([])
 const blogSearch = ref('')
-const currentPost = computed(()=>posts.value.find(post=>post.slug===String(route.params.slug))||posts.value[0])
+const currentPost = computed(()=>posts.value.find(post=>post.slug===String(route.params.slug)))
+const featuredCode = computed(()=>{
+  const post=posts.value[0]
+  if(!post)return {label:'',html:''}
+  const content=text(post.contentZh||'',post.contentEn||'')
+  const match=content.match(/```([^\r\n]*)\r?\n([\s\S]*?)```/)
+  const language=match?.[1]?.trim().split(/\s+/)[0]||''
+  const excerpt=(match?.[2]||content||text(post.summaryZh||'',post.summaryEn||'')).trim().split(/\r?\n/).filter(Boolean).slice(0,12).join('\n')
+  const result=language&&hljs.getLanguage(language)?hljs.highlight(excerpt,{language}):hljs.highlightAuto(excerpt)
+  return {label:language?`${language.toUpperCase()} · ${text('文章代码','Article code')}`:text('文章节选','Article excerpt'),html:DOMPurify.sanitize(result.value)}
+})
 const comments = ref<Array<{id:number;author:string;content:string;createdAt:string}>>([])
 const commentForm = ref({author:'',email:'',content:''}), commentNotice = ref('')
 const profile = ref<Profile>({displayName:'Lonely__Runner',realName:'Wang Yuan',cityZh:'洛阳',cityEn:'Luoyang',email:'wyy048003@gamil.com',github:'https://github.com/LonlyRunner',gitee:'https://gitee.com/q7531',xianyu:'https://m.tb.cn/h.8uafqmy?tk=UTlBT9DjXYY',wechat:'WangYuan_0425_Taurus',bioZh:'全栈开发者与 AI 应用实践者，专注 Java、Spring 与智能产品，也用影像记录技术之外的灵感。',bioEn:'Full-stack developer and applied AI builder focused on Java, Spring, intelligent products, and visual stories beyond code.'})
@@ -282,11 +288,21 @@ async function login(){busy.value=true;notice.value='';try{await api('/auth/logi
 async function logout(){try{await api('/auth/logout',{method:'POST'})}catch{}sessionStorage.removeItem('wynn-auth');chatOwner.value=false;chatHistoryLoaded.value=false;chatMessages.value=[];router.push('/')}
 
 function markdown(value:string|undefined){return DOMPurify.sanitize(String(marked.parse(value||'')))}
-async function loadPosts(query=''){try{const data=await api<Array<Record<string,unknown>>>(`/public/posts${query?`?q=${encodeURIComponent(query)}`:''}`);posts.value=data.map(p=>({id:Number(p.id),slug:String(p.slug),tag:String(p.category||'JOURNAL'),zh:String(p.titleZh),en:String(p.titleEn),date:String(p.createdAt||'').slice(0,10).replaceAll('-','.'),summaryZh:String(p.summaryZh||''),summaryEn:String(p.summaryEn||''),contentZh:String(p.contentZh||''),contentEn:String(p.contentEn||''),tags:String(p.tags||''),coverUrl:String(p.coverUrl||'')}))}catch{}}
+let postsRequestId=0
+async function loadPosts(query=''){
+  const requestId=++postsRequestId
+  postsLoading.value=true;postsError.value=false
+  try{
+    const data=await api<Array<Record<string,unknown>>>(`/public/posts${query?`?q=${encodeURIComponent(query)}`:''}`)
+    if(requestId!==postsRequestId)return
+    posts.value=data.map(p=>({id:Number(p.id),slug:String(p.slug),tag:String(p.category||'JOURNAL'),zh:String(p.titleZh),en:String(p.titleEn),date:String(p.createdAt||'').slice(0,10).replaceAll('-','.'),summaryZh:String(p.summaryZh||''),summaryEn:String(p.summaryEn||''),contentZh:String(p.contentZh||''),contentEn:String(p.contentEn||''),tags:String(p.tags||''),coverUrl:String(p.coverUrl||'')}))
+  }catch{if(requestId===postsRequestId){posts.value=[];postsError.value=true}}
+  finally{if(requestId===postsRequestId)postsLoading.value=false}
+}
 async function searchPosts(){await loadPosts(blogSearch.value.trim())}
 async function loadArticle(){if(route.name!=='article')return;await loadPosts();try{comments.value=await api(`/public/posts/${route.params.slug}/comments`)}catch{comments.value=[]}}
 async function submitComment(){commentNotice.value='';try{await api(`/public/posts/${route.params.slug}/comments`,{method:'POST',body:JSON.stringify(commentForm.value)});commentForm.value={author:'',email:'',content:''};commentNotice.value=text('评论已提交，审核后显示。','Comment submitted for review.')}catch(error){commentNotice.value=aiError(error)}}
-async function loadPublic(){refreshSiteServices();loadPosts();api<JournalItem[]>('/public/journals').then(v=>journals.value=v).catch(()=>{});api<Profile>('/public/profile').then(v=>profile.value=v).catch(()=>{});api<GalleryItem[]>('/public/media').then(v=>{if(v.length)updateGallery(v.map((item,index)=>{const fallback=fallbackGallery.find(local=>item.objectKey?.endsWith(local.url.split('/').pop()||''))||fallbackGallery[index];return{...item,promptZh:item.promptZh||fallback?.promptZh,promptEn:item.promptEn||fallback?.promptEn}}))}).catch(()=>{});if(route.name==='studio'){loadQuota();loadStudioModels();loadStudioJobs(currentJob.value?.id)};if(route.name==='article')loadArticle()}
+async function loadPublic(){refreshSiteServices();if(route.name==='article')loadArticle();else if(route.name==='blog')loadPosts(blogSearch.value.trim());api<JournalItem[]>('/public/journals').then(v=>journals.value=v).catch(()=>{});api<Profile>('/public/profile').then(v=>profile.value=v).catch(()=>{});api<GalleryItem[]>('/public/media').then(v=>{if(v.length)updateGallery(v.map((item,index)=>{const fallback=fallbackGallery.find(local=>item.objectKey?.endsWith(local.url.split('/').pop()||''))||fallbackGallery[index];return{...item,promptZh:item.promptZh||fallback?.promptZh,promptEn:item.promptEn||fallback?.promptEn}}))}).catch(()=>{});if(route.name==='studio'){loadQuota();loadStudioModels();loadStudioJobs(currentJob.value?.id)}}
 
 const adminTab=ref<'overview'|'posts'|'journals'|'media'|'ai'|'knowledge'|'comments'|'guestbook'|'operations'>('overview'), adminPosts=ref<AdminPost[]>([]), adminJournals=ref<JournalItem[]>([]), adminComments=ref<AdminComment[]>([]), adminJobs=ref<AiJob[]>([]), adminKnowledge=ref<AdminKnowledge[]>([])
 const emptyPost=():AdminPost=>({slug:'',titleZh:'',titleEn:'',category:'TECH',tags:'',summaryZh:'',summaryEn:'',contentZh:'',contentEn:'',coverObjectKey:'',published:false})
@@ -326,7 +342,7 @@ async function renderAdminCharts(){
 async function loadAdmin(){if(!sessionStorage.getItem('wynn-auth'))return;const requests=await Promise.allSettled([api<AdminPost[]>('/admin/posts'),api<JournalItem[]>('/admin/journals'),api<AdminComment[]>('/admin/comments'),api<AiJob[]>('/admin/ai/jobs'),api<AdminKnowledge[]>('/admin/knowledge')]);const targets=[adminPosts,adminJournals,adminComments,adminJobs,adminKnowledge] as Array<{value:unknown}>;requests.forEach((result,index)=>{if(result.status==='fulfilled')targets[index].value=result.value});if(requests.some(result=>result.status==='rejected'))adminNotice.value=text('部分后台数据加载失败，请刷新或重新登录','Some admin data failed to load. Refresh or sign in again.')}
 function editPost(post:AdminPost){postForm.value={...post};adminTab.value='posts'}
 function resetPost(){postForm.value=emptyPost();adminNotice.value=''}
-async function savePost(){adminNotice.value='';try{const method=postForm.value.id?'PUT':'POST',path=postForm.value.id?`/admin/posts/${postForm.value.id}`:'/admin/posts';await api(path,{method,body:JSON.stringify(postForm.value)});adminNotice.value=text('文章已保存','Post saved');resetPost();await loadAdmin()}catch(error){adminNotice.value=aiError(error)}}
+async function savePost(){adminNotice.value='';try{const method=postForm.value.id?'PUT':'POST',path=postForm.value.id?`/admin/posts/${postForm.value.id}`:'/admin/posts';const published=postForm.value.published;await api(path,{method,body:JSON.stringify(postForm.value)});adminNotice.value=published?text('文章已发布，可在博客查看','Post published and visible on the blog'):text('草稿已保存，发布后才会显示在博客','Draft saved; publish it to show it on the blog');resetPost();await loadAdmin()}catch(error){adminNotice.value=aiError(error)}}
 async function removePost(id?:number){if(!id)return;await api(`/admin/posts/${id}`,{method:'DELETE'});await loadAdmin()}
 function editJournal(item:JournalItem){if(journalSaving.value)return;resetJournal();journalForm.value={...item};adminTab.value='journals'}
 const journalSaving=ref(false), pendingJournalImages=ref<Array<{file:File;image:JournalImage}>>([])
@@ -452,7 +468,18 @@ watch(()=>route.fullPath,()=>{mobileOpen.value=false;notice.value='';soundOn.val
     </section>
   </template>
 
-  <template v-else-if="route.name==='blog'"><section class="page-head"><small>NOTES & EXPERIMENTS</small><h1>{{text('技术与思考','Technology & Thoughts')}}</h1><p>{{text('记录 Java、AI 工程与产品实践，也记录那些仍在形成中的判断。','Notes on Java, AI engineering, products, and ideas still taking shape.')}}</p><form class="blog-search" @submit.prevent="searchPosts"><input v-model="blogSearch" :placeholder="text('搜索文章、标签或内容','Search posts, tags, or content')"><button>{{text('搜索','Search')}}</button><a href="/api/public/rss.xml" target="_blank">RSS ↗</a></form></section><section v-if="posts.length" class="blog-grid"><RouterLink class="feature code-feature" :to="`/blog/${posts[0].slug}`"><div class="code-title"><span><i></i><i></i><i></i></span><small>ReliableAgent.java</small></div><code><span><em>01</em><b>@Service</b></span><span><em>02</em><strong>public class</strong> ReliableAgent &#123;</span><span><em>03</em>　<strong>private final</strong> ChatClient client;</span><span><em>04</em></span><span><em>05</em>　<strong>public</strong> Answer run(Query query) &#123;</span><span><em>06</em>　　<strong>return</strong> client.prompt()</span><span><em>07</em>　　　.user(query.text())</span><span><em>08</em>　　　.call().entity(Answer.class);</span><span><em>09</em>　&#125;</span><span><em>10</em>&#125;</span></code><div class="code-post"><small>{{posts[0].tag}}</small><h2>{{text(posts[0].zh,posts[0].en)}}</h2><span>{{posts[0].date}} · 12 MIN　→</span></div></RouterLink><div class="post-list"><RouterLink v-for="(post,i) in posts.slice(1)" :key="post.slug" class="post" :to="`/blog/${post.slug}`"><div><small>{{post.tag}}</small><h2>{{text(post.zh,post.en)}}</h2><p>{{text(post.summaryZh||'',post.summaryEn||'')}}</p><span>{{post.date}}</span></div><b>0{{i+1}}</b></RouterLink></div></section><p v-else class="empty-state">{{text('没有找到文章','No posts found')}}</p></template>
+  <template v-else-if="route.name==='blog'">
+    <section class="page-head"><small>NOTES & EXPERIMENTS</small><h1>{{text('技术与思考','Technology & Thoughts')}}</h1><p>{{text('记录 Java、AI 工程与产品实践，也记录那些仍在形成中的判断。','Notes on Java, AI engineering, products, and ideas still taking shape.')}}</p><form class="blog-search" @submit.prevent="searchPosts"><input v-model="blogSearch" :placeholder="text('搜索文章、标签或内容','Search posts, tags, or content')"><button>{{text('搜索','Search')}}</button><a href="/api/public/rss.xml" target="_blank">RSS ↗</a></form></section>
+    <section v-if="posts.length" class="blog-grid">
+      <RouterLink class="feature code-feature" :to="`/blog/${posts[0].slug}`">
+        <div class="code-title"><span><i></i><i></i><i></i></span><small>{{featuredCode.label}}</small></div>
+        <div class="code-post"><small>{{text('最新文章','LATEST POST')}} · {{posts[0].tag}}</small><h2>{{text(posts[0].zh,posts[0].en)}}</h2><p>{{text(posts[0].summaryZh||'',posts[0].summaryEn||'')}}</p><span>{{posts[0].date}}　→</span></div>
+        <pre class="featured-code"><code v-html="featuredCode.html"></code></pre>
+      </RouterLink>
+      <div class="post-list"><RouterLink v-for="(post,i) in posts.slice(1)" :key="post.slug" class="post" :to="`/blog/${post.slug}`"><div><small>{{post.tag}}</small><h2>{{text(post.zh,post.en)}}</h2><p>{{text(post.summaryZh||'',post.summaryEn||'')}}</p><span>{{post.date}}</span></div><b>0{{i+1}}</b></RouterLink></div>
+    </section>
+    <p v-else class="empty-state">{{postsLoading?text('正在加载文章…','Loading posts…'):postsError?text('文章加载失败，请检查网络后重试。','Could not load posts. Please try again.'):text('没有找到文章','No posts found')}} <button v-if="postsError" type="button" @click="loadPosts(blogSearch.trim())">{{text('重试','Retry')}}</button></p>
+  </template>
 
   <template v-else-if="route.name==='journal'"><section class="page-head journal-head"><small>SMALL DAYS · SOFT MEMORIES</small><h1>{{text('随心记','Journal')}}</h1><p>{{text('收下日常里值得记住的小事。这里公开的事件，也会成为团子与你聊天时能够想起的记忆。','A place for small moments worth keeping. Published entries also become memories Tuanzi can recall in conversation.')}}</p></section><section v-if="journals.length" class="journal-list"><article v-for="(item,index) in journals" :key="item.id"><div class="journal-date"><b>{{String(item.happenedAt||'').slice(8,10)||'--'}}</b><span>{{String(item.happenedAt||'').slice(0,7).replace('-',' / ')}}</span></div><div class="journal-copy"><small>{{item.mood||text('日常','Daily')}} · MEMORY {{String(journals.length-index).padStart(2,'0')}}</small><h2>{{text(item.titleZh,item.titleEn||item.titleZh)}}</h2><p>{{text(item.contentZh,item.contentEn||item.contentZh)}}</p><JournalPhotos :images="item.images" /></div><span class="journal-paw" aria-hidden="true">🐾</span></article></section><section v-else class="journal-empty"><img src="/media/fluffy-kitten.webp" alt=""><h2>{{text('还没有写下第一件小事','The first memory has not been written yet')}}</h2><p>{{text('登录管理后台后即可新增随心记。','Add a journal entry from the owner console.')}}</p></section></template>
 
@@ -472,6 +499,7 @@ watch(()=>route.fullPath,()=>{mobileOpen.value=false;notice.value='';soundOn.val
   </section>
 
   <article v-else-if="route.name==='article'&&currentPost" class="article"><RouterLink class="article-back" to="/blog">← {{text('返回博客','Back to blog')}}</RouterLink><small>{{currentPost.tag}} · {{currentPost.date}}</small><h1>{{text(currentPost.zh,currentPost.en)}}</h1><p class="lead">{{text(currentPost.summaryZh||'',currentPost.summaryEn||'')}}</p><hr><div class="prose" v-html="markdown(text(currentPost.contentZh||'',currentPost.contentEn||''))"></div><section class="comments"><h2>{{text('评论','Comments')}}</h2><article v-for="item in comments" :key="item.id"><b>{{item.author}}</b><p>{{item.content}}</p><small>{{String(item.createdAt).slice(0,10)}}</small></article><form @submit.prevent="submitComment"><input v-model="commentForm.author" required :placeholder="text('昵称','Name')"><input v-model="commentForm.email" type="email" :placeholder="text('邮箱（不会公开）','Email (private)')"><textarea v-model="commentForm.content" required :placeholder="text('写下评论，审核后显示','Write a comment; it appears after review')"></textarea><button>{{text('提交评论','Submit comment')}}</button><small>{{commentNotice}}</small></form></section></article>
+  <section v-else-if="route.name==='article'" class="article"><RouterLink class="article-back" to="/blog">← {{text('返回博客','Back to blog')}}</RouterLink><p class="empty-state">{{postsLoading?text('正在加载文章…','Loading post…'):postsError?text('文章加载失败，请稍后重试。','Could not load the post. Please try again.'):text('文章不存在或尚未发布。','This post does not exist or is not published.')}} <button v-if="postsError" type="button" @click="loadArticle">{{text('重试','Retry')}}</button></p></section>
 
   <template v-else-if="route.name==='gallery'"><section class="page-head"><small>VISUAL ARCHIVE</small><h1>{{text('影像收藏','Visual Archive')}}</h1><p>{{text('点击照片即可翻转，查看并复制它的创作提示词。','Tap a photo to flip it, then view and copy its creation prompt.')}}</p></section><section class="gallery user-gallery"><figure v-for="(item,i) in galleryItems" :key="item.id||item.url" :class="{'gallery-portrait':i%5===4,flipped:flippedGallery===galleryKey(item,i)}" tabindex="0" @click="flipGallery(item,i)" @keyup.enter="flipGallery(item,i)"><div class="gallery-flip"><div class="gallery-face gallery-front"><img :src="previewImageUrl(item,480)" :srcset="previewSrcset(item)" sizes="(max-width: 760px) calc(100vw - 32px), (max-width: 960px) 50vw, 33vw" :alt="text(item.titleZh,item.titleEn)" loading="lazy" decoding="async" @error="restoreOriginalImage($event,item.url)"><figcaption>{{text(item.titleZh,item.titleEn)}} · {{text('点击翻转','FLIP')}}</figcaption></div><div class="gallery-face gallery-back" @click.stop="flippedGallery=undefined"><small>IMAGE PROMPT · {{String(i+1).padStart(2,'0')}}</small><h2>{{text(item.titleZh,item.titleEn)}}</h2><p>{{text(item.promptZh||'正在生成提示词…',item.promptEn||'Generating prompt…')}}</p><button @click.stop="copyGalleryPrompt(item,i)">{{copiedGallery===galleryKey(item,i)?text('已复制 ✓','Copied ✓'):text('复制提示词','Copy prompt')}}</button><span>{{text('点击空白处返回照片','Tap elsewhere to return')}}</span></div></div></figure></section></template>
 
