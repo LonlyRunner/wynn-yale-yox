@@ -110,16 +110,21 @@ const postsLoading = ref(false), postsError = ref(false)
 const journals = ref<JournalItem[]>([])
 const blogSearch = ref('')
 const currentPost = computed(()=>posts.value.find(post=>post.slug===String(route.params.slug)))
-const featuredCode = computed(()=>{
-  const post=posts.value[0]
-  if(!post)return {label:'',html:''}
-  const content=text(post.contentZh||'',post.contentEn||'')
-  const match=content.match(/```([^\r\n]*)\r?\n([\s\S]*?)```/)
-  const language=match?.[1]?.trim().split(/\s+/)[0]||''
-  const excerpt=(match?.[2]||content||text(post.summaryZh||'',post.summaryEn||'')).trim().split(/\r?\n/).filter(Boolean).slice(0,12).join('\n')
-  const result=language&&hljs.getLanguage(language)?hljs.highlight(excerpt,{language}):hljs.highlightAuto(excerpt)
-  return {label:language?`${language.toUpperCase()} · ${text('文章代码','Article code')}`:text('文章节选','Article excerpt'),html:DOMPurify.sanitize(result.value)}
-})
+const demoCodeHtml = DOMPurify.sanitize(hljs.highlight(`@Service
+public class ReliableAgent {
+  private final ChatClient client;
+
+  public ReliableAgent(ChatClient client) {
+    this.client = client;
+  }
+
+  public String run(String question) {
+    return client.prompt()
+      .user(question)
+      .call()
+      .content();
+  }
+}`, { language:'java' }).value)
 const comments = ref<Array<{id:number;author:string;content:string;createdAt:string}>>([])
 const commentForm = ref({author:'',email:'',content:''}), commentNotice = ref('')
 const profile = ref<Profile>({displayName:'Lonely__Runner',realName:'Wang Yuan',cityZh:'洛阳',cityEn:'Luoyang',email:'wyy048003@gamil.com',github:'https://github.com/LonlyRunner',gitee:'https://gitee.com/q7531',xianyu:'https://m.tb.cn/h.8uafqmy?tk=UTlBT9DjXYY',wechat:'WangYuan_0425_Taurus',bioZh:'全栈开发者与 AI 应用实践者，专注 Java、Spring 与智能产品，也用影像记录技术之外的灵感。',bioEn:'Full-stack developer and applied AI builder focused on Java, Spring, intelligent products, and visual stories beyond code.'})
@@ -471,11 +476,10 @@ watch(()=>route.fullPath,()=>{mobileOpen.value=false;notice.value='';soundOn.val
   <template v-else-if="route.name==='blog'">
     <section class="page-head"><small>NOTES & EXPERIMENTS</small><h1>{{text('技术与思考','Technology & Thoughts')}}</h1><p>{{text('记录 Java、AI 工程与产品实践，也记录那些仍在形成中的判断。','Notes on Java, AI engineering, products, and ideas still taking shape.')}}</p><form class="blog-search" @submit.prevent="searchPosts"><input v-model="blogSearch" :placeholder="text('搜索文章、标签或内容','Search posts, tags, or content')"><button>{{text('搜索','Search')}}</button><a href="/api/public/rss.xml" target="_blank">RSS ↗</a></form></section>
     <section v-if="posts.length" class="blog-grid">
-      <RouterLink class="feature code-feature" :to="`/blog/${posts[0].slug}`">
-        <div class="code-title"><span><i></i><i></i><i></i></span><small>{{featuredCode.label}}</small></div>
-        <div class="code-post"><small>{{text('最新文章','LATEST POST')}} · {{posts[0].tag}}</small><h2>{{text(posts[0].zh,posts[0].en)}}</h2><p>{{text(posts[0].summaryZh||'',posts[0].summaryEn||'')}}</p><span>{{posts[0].date}}　→</span></div>
-        <pre class="featured-code"><code v-html="featuredCode.html"></code></pre>
-      </RouterLink>
+      <div class="feature code-feature">
+        <div class="code-title"><span><i></i><i></i><i></i></span><small>ReliableAgent.java · {{text('演示代码','Demo code')}}</small></div>
+        <pre class="featured-code"><code v-html="demoCodeHtml"></code></pre>
+      </div>
       <div class="post-list"><RouterLink v-for="(post,i) in posts" :key="post.slug" class="post" :to="`/blog/${post.slug}`"><div><small>{{post.tag}}</small><h2>{{text(post.zh,post.en)}}</h2><p>{{text(post.summaryZh||'',post.summaryEn||'')}}</p><span>{{post.date}}</span></div><b>{{String(i+1).padStart(2,'0')}}</b></RouterLink></div>
     </section>
     <p v-else class="empty-state">{{postsLoading?text('正在加载文章…','Loading posts…'):postsError?text('文章加载失败，请检查网络后重试。','Could not load posts. Please try again.'):text('没有找到文章','No posts found')}} <button v-if="postsError" type="button" @click="loadPosts(blogSearch.trim())">{{text('重试','Retry')}}</button></p>

@@ -72,7 +72,6 @@ body{background:radial-gradient(circle at 10% 8%,#ffe4df 0,transparent 23%),radi
 .featured-code{flex:1;min-height:0;margin:0;padding:22px 25px;overflow:hidden;border-top:1px solid #806057;background:rgba(31,21,21,.22)}
 .code-feature .featured-code code{display:block;padding:0;color:#eadbd5;font:12px/1.65 Consolas,"SFMono-Regular",monospace;white-space:pre-wrap;overflow-wrap:anywhere}
 .code-feature .featured-code code .hljs-keyword,.code-feature .featured-code code .hljs-title{color:#efaaa0}.code-feature .featured-code code .hljs-string,.code-feature .featured-code code .hljs-attr{color:#e9c589}
-.code-post{padding:23px 28px 20px;flex:none}.code-post small{color:#efb0a3}.code-post h2{font:31px/1.2 var(--serif);margin:8px 0 11px}.code-post p{margin:0 0 13px;color:#e6cec4;font-size:12px;line-height:1.6;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}.code-post span{color:#d7bfb6}
 .blog-grid .post{height:100%;min-height:237px}.blog-grid .post p{display:-webkit-box;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:3}.article-back{display:inline-flex;align-items:center;margin-bottom:28px;padding:9px 15px;border:1px solid #dfc1b4;border-radius:999px;color:#a8675c;background:#fffaf5;font-size:11px;box-shadow:0 8px 18px rgba(112,74,61,.07)}.article-back:hover{background:#f6dfd5}
 
 /* Reversible prompt cards */
@@ -89,7 +88,7 @@ body{background:radial-gradient(circle at 10% 8%,#ffe4df 0,transparent 23%),radi
 .gallery-back button{padding:10px 15px;color:#fffaf5;background:#b97868;border:0;border-radius:999px;cursor:pointer}.gallery-back>span{margin-top:12px;color:#ad8d82;font-size:9px}
 .download-result{display:inline-flex;align-items:center;justify-content:center;min-width:150px;padding:11px 18px!important;color:#fffaf5!important;background:#b97868;border-radius:999px;box-shadow:0 9px 20px rgba(145,87,72,.18)}
 .admin-download{display:inline-block;margin-left:10px;padding:5px 10px;color:#fffaf5;background:#b97868;border-radius:999px;font-size:10px}
-@media(max-width:760px){.blog-grid{grid-template-columns:1fr}.code-feature{grid-row:auto;height:440px;min-height:440px}.blog-grid .post{min-height:0}.featured-code{padding-inline:19px}.code-feature .featured-code code{font-size:10px}.code-post{padding-inline:19px}.article-back{margin-bottom:22px}.gallery-back p{-webkit-line-clamp:6;font-size:12px}.gallery-back h2{font-size:23px}}
+@media(max-width:760px){.blog-grid{grid-template-columns:1fr}.code-feature{grid-row:auto;height:440px;min-height:440px}.blog-grid .post{min-height:0}.featured-code{padding-inline:19px}.code-feature .featured-code code{font-size:10px}.article-back{margin-bottom:22px}.gallery-back p{-webkit-line-clamp:6;font-size:12px}.gallery-back h2{font-size:23px}}
 
 /* Tuanzi RAG chat */
 .cat-chat{position:fixed;z-index:80;right:22px;bottom:22px;width:min(410px,calc(100vw - 32px));height:min(650px,calc(100vh - 44px));display:flex;flex-direction:column;overflow:hidden;color:#5d4139;background:rgba(255,250,244,.97);border:1px solid #e5c9bc;border-radius:26px;box-shadow:0 24px 70px rgba(91,57,46,.25);backdrop-filter:blur(18px)}
