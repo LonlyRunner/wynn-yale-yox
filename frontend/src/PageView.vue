@@ -476,7 +476,7 @@ watch(()=>route.fullPath,()=>{mobileOpen.value=false;notice.value='';soundOn.val
         <div class="code-post"><small>{{text('最新文章','LATEST POST')}} · {{posts[0].tag}}</small><h2>{{text(posts[0].zh,posts[0].en)}}</h2><p>{{text(posts[0].summaryZh||'',posts[0].summaryEn||'')}}</p><span>{{posts[0].date}}　→</span></div>
         <pre class="featured-code"><code v-html="featuredCode.html"></code></pre>
       </RouterLink>
-      <div class="post-list"><RouterLink v-for="(post,i) in posts.slice(1)" :key="post.slug" class="post" :to="`/blog/${post.slug}`"><div><small>{{post.tag}}</small><h2>{{text(post.zh,post.en)}}</h2><p>{{text(post.summaryZh||'',post.summaryEn||'')}}</p><span>{{post.date}}</span></div><b>0{{i+1}}</b></RouterLink></div>
+      <div class="post-list"><RouterLink v-for="(post,i) in posts" :key="post.slug" class="post" :to="`/blog/${post.slug}`"><div><small>{{post.tag}}</small><h2>{{text(post.zh,post.en)}}</h2><p>{{text(post.summaryZh||'',post.summaryEn||'')}}</p><span>{{post.date}}</span></div><b>{{String(i+1).padStart(2,'0')}}</b></RouterLink></div>
     </section>
     <p v-else class="empty-state">{{postsLoading?text('正在加载文章…','Loading posts…'):postsError?text('文章加载失败，请检查网络后重试。','Could not load posts. Please try again.'):text('没有找到文章','No posts found')}} <button v-if="postsError" type="button" @click="loadPosts(blogSearch.trim())">{{text('重试','Retry')}}</button></p>
   </template>
