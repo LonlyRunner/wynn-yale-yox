@@ -209,6 +209,15 @@ body{background:radial-gradient(circle at 10% 8%,#ffe4df 0,transparent 23%),radi
 .game-card:nth-child(4) p{color:#866b61}
 .game-card:nth-child(4)>span{border-color:#ac7868}
 .holo-game-shell{grid-template-columns:minmax(0,1fr)}
+.holo-card-picker{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.holo-card-picker a{min-width:0;display:flex;flex-direction:column;gap:3px;padding:13px 18px;border:1px solid #e3c9bc;border-radius:18px;background:#fff9f4;color:#76574e;text-decoration:none;transition:border-color .2s,background-color .2s,transform .2s}
+.holo-card-picker a:nth-child(2){background:#fff3f3}
+.holo-card-picker a:nth-child(3){background:#f5f4fa}
+.holo-card-picker a:hover{transform:translateY(-2px)}
+.holo-card-picker a.active{border-color:#bb7b69;background:#f8e5dc;box-shadow:0 9px 22px rgb(102 67 54 / 10%)}
+.holo-card-picker a b{font-size:17px;letter-spacing:.04em}
+.holo-card-picker a span{font-size:13px;line-height:1.35}
+.holo-card-picker a:focus-visible{outline:2px solid #a96250;outline-offset:3px}
 .holo-game-frame{display:block;width:100%;height:820px;border:1px solid #e4cabe;border-radius:24px;background:#fff9f4;box-shadow:0 20px 50px rgb(102 67 54 / 13%)}
 @media(max-width:1100px){.game-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:760px){.game-grid{grid-template-columns:1fr}.holo-game-frame{height:1040px;border-radius:18px}}
+@media(max-width:760px){.game-grid{grid-template-columns:1fr}.holo-card-picker{gap:6px}.holo-card-picker a{padding:10px 8px}.holo-card-picker a b{font-size:14px}.holo-card-picker a span{font-size:12px}.holo-game-frame{height:1040px;border-radius:18px}}

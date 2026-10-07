@@ -1,0 +1,23 @@
+{
+  "description": "黑底液态玻璃猫与彩虹折射全息收藏卡",
+  "parameters": {
+    "particles": 1.0,
+    "backgroundDepth": -0.18,
+    "subjectDepth": 0.25,
+    "subjectScale": 1.0,
+    "glow": 0.35,
+    "foil": 1.0
+  },
+  "subtitle": "HOLO CARD STUDIO",
+  "safeArea": { "scale": 1.0, "offset": [0, 0] },
+  "title": "No.003",
+  "mode": "holographic",
+  "edition": "No.003",
+  "assets": {
+    "subject": "/holo-card/no-003/assets/subject.png",
+    "background": "/holo-card/no-003/assets/background.png",
+    "text": "/holo-card/no-003/assets/text.png",
+    "lineart": "/holo-card/no-003/assets/lineart.png",
+    "model": "/holo-card/assets/card.glb"
+  }
+}

@@ -76,7 +76,10 @@ function wrapCanvasText(ctx,text,x,y,maxWidth,lineHeight){
  if(line)ctx.fillText(line,x,y+row*lineHeight);
 }
 async function init(){
- config=await fetch('/holo-card/card-config.json').then(r=>{if(!r.ok)throw Error('Card configuration was not found.');return r.json();});
+ const requestedCard=new URLSearchParams(location.search).get('card');
+ const cardId=['002','003'].includes(requestedCard)?requestedCard:'001';
+ const configUrl=cardId==='001'?'/holo-card/card-config.json':`/holo-card/no-${cardId}/card-config.json`;
+ config=await fetch(configUrl).then(r=>{if(!r.ok)throw Error('Card configuration was not found.');return r.json();});
  document.title=(config.title||'CARD TITLE')+' — HOLO CARD STUDIO';
  for(const [id,key]of Object.entries({'card-title':'title','subtitle':'subtitle','edition':'edition'}))if(config[key]&&$(id))$(id).textContent=config[key];
  renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,preserveDrawingBuffer:true,powerPreference:'high-performance'});renderer.setClearColor(0xffffff,1);renderer.setPixelRatio(Math.min(devicePixelRatio,1.75));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.NoToneMapping;renderer.toneMappingExposure=1;stage.append(renderer.domElement);

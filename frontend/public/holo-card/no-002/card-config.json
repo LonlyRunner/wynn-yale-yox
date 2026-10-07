@@ -1,0 +1,23 @@
+{
+  "description": "粉发金瞳与金色护目镜角色的粉金全息收藏卡",
+  "parameters": {
+    "particles": 1.0,
+    "backgroundDepth": -0.18,
+    "subjectDepth": 0.25,
+    "subjectScale": 1.0,
+    "glow": 0.35,
+    "foil": 1.0
+  },
+  "subtitle": "HOLO CARD STUDIO",
+  "safeArea": { "scale": 1.0, "offset": [0, 0] },
+  "title": "No.002",
+  "mode": "holographic",
+  "edition": "No.002",
+  "assets": {
+    "subject": "/holo-card/no-002/assets/subject.png",
+    "background": "/holo-card/no-002/assets/background.png",
+    "text": "/holo-card/no-002/assets/text.png",
+    "lineart": "/holo-card/no-002/assets/lineart.png",
+    "model": "/holo-card/assets/card.glb"
+  }
+}
