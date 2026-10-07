@@ -1,0 +1,32 @@
+{
+  "description": "保留参考图角色与青蓝紫红配色的全息收藏卡",
+  "parameters": {
+    "particles": 1.0,
+    "backgroundDepth": -0.18,
+    "subjectDepth": 0.25,
+    "subjectScale": 1.0,
+    "glow": 0.35,
+    "foil": 1.0
+  },
+  "tagline": "",
+  "subtitle": "HOLO CARD STUDIO",
+  "collection": "",
+  "safeArea": {
+    "scale": 1.0,
+    "offset": [
+      0,
+      0
+    ]
+  },
+  "title": "No.001",
+  "mode": "holographic",
+  "technique": "",
+  "edition": "No.001",
+  "assets": {
+    "subject": "/holo-card/assets/subject.png",
+    "background": "/holo-card/assets/background.png",
+    "text": "/holo-card/assets/text.png",
+    "lineart": "/holo-card/assets/lineart.png",
+    "model": "/holo-card/assets/card.glb"
+  }
+}

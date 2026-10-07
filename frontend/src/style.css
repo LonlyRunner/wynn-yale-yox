@@ -203,3 +203,12 @@ body{background:radial-gradient(circle at 10% 8%,#ffe4df 0,transparent 23%),radi
 }
 
 .service-paused{margin:12px 0;padding:12px 18px;border:1px solid #e6bdad;border-radius:16px;background:#fff1dc;color:#8b614d;font-size:14px;line-height:1.6}.cat-chat .service-paused{flex-shrink:0;margin:10px 16px}.journal-image-editor{min-width:0}.journal-image-editor>p{font-size:14px;line-height:1.6;color:#96796d}.journal-image-editor .file-button{display:inline-flex;margin:10px 0}.journal-copy{min-width:0}
+
+.game-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+.game-card:nth-child(4){color:#5a4039;border-color:#e2c7b9;border-radius:26px;background:linear-gradient(145deg,#fff8f0,#f2dcd3);box-shadow:0 18px 45px rgb(102 67 54 / 10%)}
+.game-card:nth-child(4) p{color:#866b61}
+.game-card:nth-child(4)>span{border-color:#ac7868}
+.holo-game-shell{grid-template-columns:minmax(0,1fr)}
+.holo-game-frame{display:block;width:100%;height:820px;border:1px solid #e4cabe;border-radius:24px;background:#fff9f4;box-shadow:0 20px 50px rgb(102 67 54 / 13%)}
+@media(max-width:1100px){.game-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.game-grid{grid-template-columns:1fr}.holo-game-frame{height:1040px;border-radius:18px}}
