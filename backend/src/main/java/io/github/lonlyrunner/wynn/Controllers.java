@@ -601,6 +601,10 @@ class AdminController {
     Object importKnowledge(@RequestPart("file") MultipartFile file) { return importDocument(file); }
 
     private Post savePost(Post post, PostRequest request) {
+        posts.findBySlug(request.slug()).ifPresent(existing -> {
+            if (!Objects.equals(existing.id, post.id))
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "网址标识已被其他文章使用，请换一个或编辑已有文章");
+        });
         post.slug = request.slug(); post.titleZh = request.titleZh(); post.titleEn = request.titleEn(); post.category = request.category(); post.tags = request.tags();
         post.summaryZh = request.summaryZh(); post.summaryEn = request.summaryEn(); post.contentZh = request.contentZh(); post.contentEn = request.contentEn();
         post.coverObjectKey = request.coverObjectKey(); post.published = request.published(); post.updatedAt = Instant.now();
