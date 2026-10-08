@@ -535,10 +535,14 @@ class AdminController {
     @PostMapping(value = "/posts/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     Object importDocument(@RequestPart("file") MultipartFile file) {
         try {
-            String content = tika.parseToString(file.getInputStream());
             String filename = file.getOriginalFilename() == null ? "Imported document" : file.getOriginalFilename();
+            String lowerFilename = filename.toLowerCase(Locale.ROOT);
+            boolean markdown = lowerFilename.endsWith(".md") || lowerFilename.endsWith(".markdown");
+            String content = markdown
+                ? new String(file.getBytes(), StandardCharsets.UTF_8).replaceFirst("^\uFEFF", "")
+                : tika.parseToString(file.getInputStream()).trim();
             String title = filename.replaceFirst("\\.[^.]+$", "");
-            return Map.of("title", title, "content", content.trim());
+            return Map.of("title", title, "content", content);
         } catch (Exception error) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "文档解析失败", error);
         }
