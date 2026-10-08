@@ -22,8 +22,10 @@ const compactMusicPlayer = ref(mobileMusicDevice||window.matchMedia('(max-width:
 const heroVideo = ref<HTMLVideoElement>(), soundOn = ref(false)
 const text = (zh: string, en: string) => lang.value === 'zh' ? zh : en
 const markdownRenderer = new marked.Renderer()
+const escapeDiagram = (value: string) => value.replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]!))
 markdownRenderer.code = ({ text: code, lang }) => {
   const language = lang?.split(/\s+/)[0]
+  if (language?.toLowerCase() === 'mermaid') return `<div class="mermaid-card"><div class="mermaid">${escapeDiagram(code)}</div></div>`
   const result = language && hljs.getLanguage(language)
     ? hljs.highlight(code, { language })
     : hljs.highlightAuto(code)
@@ -293,6 +295,18 @@ async function login(){busy.value=true;notice.value='';try{await api('/auth/logi
 async function logout(){try{await api('/auth/logout',{method:'POST'})}catch{}sessionStorage.removeItem('wynn-auth');chatOwner.value=false;chatHistoryLoaded.value=false;chatMessages.value=[];router.push('/')}
 
 function markdown(value:string|undefined){return DOMPurify.sanitize(String(marked.parse(value||'')))}
+async function renderArticleDiagrams(){
+  await nextTick()
+  if(route.name!=='article')return
+  const nodes=document.querySelectorAll<HTMLElement>('.article .prose .mermaid')
+  if(!nodes.length)return
+  try{
+    const {default:mermaid}=await import('mermaid')
+    mermaid.initialize({startOnLoad:false,securityLevel:'strict',suppressErrorRendering:true,htmlLabels:false,layout:'dagre',theme:'base',themeVariables:{primaryColor:'#f8e8df',primaryTextColor:'#5b4038',primaryBorderColor:'#be8171',lineColor:'#ad7668',secondaryColor:'#fff9f5',tertiaryColor:'#f3e4db',fontFamily:'Microsoft YaHei, Arial, sans-serif'}})
+    const activeNodes=Array.from(nodes).filter(node=>node.isConnected)
+    if(activeNodes.length)await mermaid.run({nodes:activeNodes,suppressErrors:true})
+  }catch(error){console.error('文章流程图渲染失败',error)}
+}
 let postsRequestId=0
 async function loadPosts(query=''){
   const requestId=++postsRequestId
@@ -433,6 +447,7 @@ function restartStack(){board.value=createStackBoard();score.value=0;stackMoveTi
 function key(event:KeyboardEvent){if(gameId.value==='pelican'&&(event.key===' '||event.key==='ArrowUp')){event.preventDefault();jumpPelican()}if(gameId.value==='stack'&&event.key.startsWith('Arrow')){event.preventDefault();stackMove(event.key.replace('Arrow','').toLowerCase() as MoveDirection)}}
 function resetGame(){clearInterval(timer.value);playing.value=false;score.value=0;pelicanJumping.value=false;memoryLevel.value=1;memory.value=createMemoryDeck(1);openCards.value=[];memoryBusy.value=false;board.value=createStackBoard();stackMoveTick.value=0}
 watch(()=>[adminTab.value,categorySeries.value,aiStatusSeries.value,enabledKnowledgePercent.value],renderAdminCharts,{deep:true})
+watch(()=>[route.fullPath,lang.value,currentPost.value?.contentZh,currentPost.value?.contentEn],renderArticleDiagrams,{flush:'post'})
 onMounted(()=>{addEventListener('keydown',key);addEventListener('resize',resizeAdminCharts);addEventListener('resize',updateCompactMusicPlayer);updateCompactMusicPlayer();refreshChatOwner();refreshChatVoices();if('speechSynthesis' in window)window.speechSynthesis.onvoiceschanged=refreshChatVoices;loadPublic();if(route.name==='admin')loadAdmin();if(route.name==='game'&&gameId.value==='pelican')loadChatModels()});onBeforeUnmount(()=>{removeEventListener('keydown',key);removeEventListener('resize',resizeAdminCharts);removeEventListener('resize',updateCompactMusicPlayer);disposeAdminCharts();clearPendingJournalImages();clearInterval(timer.value);clearTimeout(aiPollTimer);aiViewVersion++;studioLoading.value=false;if('speechSynthesis' in window)window.speechSynthesis.onvoiceschanged=null;window.speechSynthesis?.cancel()})
 watch(creatorMode,()=>{currentJob.value=undefined;aiHistory.value=[];loadStudioJobs()})
 watch(()=>route.fullPath,()=>{mobileOpen.value=false;notice.value='';soundOn.value=false;clearTimeout(aiPollTimer);aiViewVersion++;studioLoading.value=false;if(route.name==='game'){resetGame();if(gameId.value==='pelican')loadChatModels()}else{playing.value=false;clearInterval(timer.value)}loadPublic();if(route.name==='admin')loadAdmin()})
