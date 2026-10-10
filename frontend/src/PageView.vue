@@ -31,6 +31,7 @@ markdownRenderer.code = ({ text: code, lang }) => {
     : hljs.highlightAuto(code)
   return `<pre><code class="hljs${result.language ? ` language-${result.language}` : ''}">${result.value}</code></pre>`
 }
+markdownRenderer.image = ({ href, title, text: alt }) => `<img src="${escapeDiagram(href)}" alt="${escapeDiagram(alt)}"${title ? ` title="${escapeDiagram(title)}"` : ''} loading="lazy" decoding="async">`
 marked.use({ renderer: markdownRenderer })
 const toggleLang = () => { lang.value = lang.value === 'zh' ? 'en' : 'zh'; localStorage.setItem('wynn-lang', lang.value) }
 function scrollArticleToTop(){window.scrollTo({top:0,behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'})}
@@ -309,20 +310,32 @@ async function renderArticleDiagrams(){
   }catch(error){console.error('文章流程图渲染失败',error)}
 }
 let postsRequestId=0
+const postFromApi=(p:Record<string,unknown>):PostCard=>({id:Number(p.id),slug:String(p.slug),tag:String(p.category||'JOURNAL'),zh:String(p.titleZh),en:String(p.titleEn),date:String(p.createdAt||'').slice(0,10).replaceAll('-','.'),summaryZh:String(p.summaryZh||''),summaryEn:String(p.summaryEn||''),contentZh:String(p.contentZh||''),contentEn:String(p.contentEn||''),tags:String(p.tags||''),coverUrl:String(p.coverUrl||'')})
 async function loadPosts(query=''){
   const requestId=++postsRequestId
   postsLoading.value=true;postsError.value=false
   try{
     const data=await api<Array<Record<string,unknown>>>(`/public/posts${query?`?q=${encodeURIComponent(query)}`:''}`)
     if(requestId!==postsRequestId)return
-    posts.value=data.map(p=>({id:Number(p.id),slug:String(p.slug),tag:String(p.category||'JOURNAL'),zh:String(p.titleZh),en:String(p.titleEn),date:String(p.createdAt||'').slice(0,10).replaceAll('-','.'),summaryZh:String(p.summaryZh||''),summaryEn:String(p.summaryEn||''),contentZh:String(p.contentZh||''),contentEn:String(p.contentEn||''),tags:String(p.tags||''),coverUrl:String(p.coverUrl||'')}))
+    posts.value=data.map(postFromApi)
   }catch{if(requestId===postsRequestId){posts.value=[];postsError.value=true}}
   finally{if(requestId===postsRequestId)postsLoading.value=false}
 }
 async function searchPosts(){await loadPosts(blogSearch.value.trim())}
-async function loadArticle(){if(route.name!=='article')return;await loadPosts();try{comments.value=await api(`/public/posts/${route.params.slug}/comments`)}catch{comments.value=[]}}
+async function loadArticle(){
+  if(route.name!=='article')return
+  const slug=String(route.params.slug),requestId=++postsRequestId
+  posts.value=[];comments.value=[];postsLoading.value=true;postsError.value=false
+  try{
+    const post=await api<Record<string,unknown>>(`/public/posts/${encodeURIComponent(slug)}`)
+    if(requestId!==postsRequestId||route.name!=='article'||String(route.params.slug)!==slug)return
+    posts.value=[postFromApi(post)]
+    try{comments.value=await api(`/public/posts/${encodeURIComponent(slug)}/comments`)}catch{comments.value=[]}
+  }catch{if(requestId===postsRequestId){posts.value=[];postsError.value=true}}
+  finally{if(requestId===postsRequestId)postsLoading.value=false}
+}
 async function submitComment(){commentNotice.value='';try{await api(`/public/posts/${route.params.slug}/comments`,{method:'POST',body:JSON.stringify(commentForm.value)});commentForm.value={author:'',email:'',content:''};commentNotice.value=text('评论已提交，审核后显示。','Comment submitted for review.')}catch(error){commentNotice.value=aiError(error)}}
-async function loadPublic(){refreshSiteServices();if(route.name==='article')loadArticle();else if(route.name==='blog')loadPosts(blogSearch.value.trim());api<JournalItem[]>('/public/journals').then(v=>journals.value=v).catch(()=>{});api<Profile>('/public/profile').then(v=>profile.value=v).catch(()=>{});api<GalleryItem[]>('/public/media').then(v=>{if(v.length)updateGallery(v.map((item,index)=>{const fallback=fallbackGallery.find(local=>item.objectKey?.endsWith(local.url.split('/').pop()||''))||fallbackGallery[index];return{...item,promptZh:item.promptZh||fallback?.promptZh,promptEn:item.promptEn||fallback?.promptEn}}))}).catch(()=>{});if(route.name==='studio'){loadQuota();loadStudioModels();loadStudioJobs(currentJob.value?.id)}}
+async function loadPublic(){refreshSiteServices();if(route.name==='article'){loadArticle();return}else if(route.name==='blog'){loadPosts(blogSearch.value.trim());return}api<JournalItem[]>('/public/journals').then(v=>journals.value=v).catch(()=>{});api<Profile>('/public/profile').then(v=>profile.value=v).catch(()=>{});api<GalleryItem[]>('/public/media').then(v=>{if(v.length)updateGallery(v.map((item,index)=>{const fallback=fallbackGallery.find(local=>item.objectKey?.endsWith(local.url.split('/').pop()||''))||fallbackGallery[index];return{...item,promptZh:item.promptZh||fallback?.promptZh,promptEn:item.promptEn||fallback?.promptEn}}))}).catch(()=>{});if(route.name==='studio'){loadQuota();loadStudioModels();loadStudioJobs(currentJob.value?.id)}}
 
 const adminTab=ref<'overview'|'posts'|'journals'|'media'|'ai'|'knowledge'|'comments'|'guestbook'|'operations'>('overview'), adminPosts=ref<AdminPost[]>([]), adminJournals=ref<JournalItem[]>([]), adminComments=ref<AdminComment[]>([]), adminJobs=ref<AiJob[]>([]), adminKnowledge=ref<AdminKnowledge[]>([])
 const emptyPost=():AdminPost=>({slug:'',titleZh:'',titleEn:'',category:'TECH',tags:'',summaryZh:'',summaryEn:'',contentZh:'',contentEn:'',coverObjectKey:'',published:false})

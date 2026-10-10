@@ -123,7 +123,7 @@ class PublicController {
     @GetMapping("/posts")
     Object posts(@RequestParam(defaultValue = "") String q) {
         List<Post> result = q.isBlank() ? posts.findByPublishedTrueOrderByCreatedAtDesc() : posts.searchPublished(q.trim());
-        return result.stream().map(this::postDto).toList();
+        return result.stream().map(post -> postDto(post, false)).toList();
     }
 
     @GetMapping("/posts/{slug}")
@@ -185,11 +185,14 @@ class PublicController {
         return ResponseEntity.ok().contentType(MediaType.parseMediaType("application/rss+xml;charset=UTF-8")).body(xml.toString());
     }
 
-    private Map<String, Object> postDto(Post post) {
+    private Map<String, Object> postDto(Post post) { return postDto(post, true); }
+
+    private Map<String, Object> postDto(Post post, boolean includeContent) {
         Map<String, Object> dto = new LinkedHashMap<>();
         dto.put("id", post.id); dto.put("slug", post.slug); dto.put("titleZh", value(post.titleZh)); dto.put("titleEn", value(post.titleEn));
         dto.put("category", value(post.category)); dto.put("tags", value(post.tags)); dto.put("summaryZh", value(post.summaryZh)); dto.put("summaryEn", value(post.summaryEn));
-        dto.put("contentZh", value(post.contentZh)); dto.put("contentEn", value(post.contentEn)); dto.put("published", post.published); dto.put("createdAt", post.createdAt);
+        if (includeContent) { dto.put("contentZh", value(post.contentZh)); dto.put("contentEn", value(post.contentEn)); }
+        dto.put("published", post.published); dto.put("createdAt", post.createdAt);
         dto.put("coverUrl", signed(post.coverObjectKey));
         return dto;
     }

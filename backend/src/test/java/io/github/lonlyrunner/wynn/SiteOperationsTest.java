@@ -29,6 +29,7 @@ class SiteOperationsTest {
     @Autowired SiteServicesRepository settings;
     @Autowired VisitorEventRepository visits;
     @Autowired JournalRepository journals;
+    @Autowired PostRepository posts;
     @MockitoBean OssService oss;
     @MockitoBean CatChatService chat;
     MockMvc mvc;
@@ -40,6 +41,23 @@ class SiteOperationsTest {
         mvc=MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
         when(oss.configured()).thenReturn(true);
         when(oss.presignedGetUrl(anyString())).thenAnswer(call -> "https://files.example.invalid/"+call.getArgument(0));
+    }
+
+    @Test void postListStaysSmallWhileArticleRetainsFullContent() throws Exception {
+        String slug = "payload-" + UUID.randomUUID();
+        Post post = new Post(slug, slug, slug, "TECH");
+        post.contentZh = "文章完整正文";
+        post.contentEn = "Full article";
+        posts.save(post);
+        var list = json.readTree(mvc.perform(get("/api/public/posts").param("q", slug))
+            .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        assertEquals(1, list.size());
+        assertFalse(list.get(0).has("contentZh"));
+        assertFalse(list.get(0).has("contentEn"));
+        mvc.perform(get("/api/public/posts/" + slug))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.contentZh").value("文章完整正文"))
+            .andExpect(jsonPath("$.contentEn").value("Full article"));
     }
 
     @Test void persistentIndependentSwitchesBlockNewRequestsWithoutBlockingHistory() throws Exception {
