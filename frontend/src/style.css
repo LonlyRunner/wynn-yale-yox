@@ -206,7 +206,13 @@ body{background:radial-gradient(circle at 10% 8%,#ffe4df 0,transparent 23%),radi
 
 .service-paused{margin:12px 0;padding:12px 18px;border:1px solid #e6bdad;border-radius:16px;background:#fff1dc;color:#8b614d;font-size:14px;line-height:1.6}.cat-chat .service-paused{flex-shrink:0;margin:10px 16px}.journal-image-editor{min-width:0}.journal-image-editor>p{font-size:14px;line-height:1.6;color:#96796d}.journal-image-editor .file-button{display:inline-flex;margin:10px 0}.journal-copy{min-width:0}
 
-.game-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+.admin-workspace{align-items:start}
+.admin-workspace>.admin-list{min-width:0;max-height:calc(100dvh - 180px);overflow-y:auto;overflow-x:hidden;align-content:start;grid-auto-rows:max-content;margin-top:0;padding:0 8px 12px 0;scrollbar-gutter:stable;overscroll-behavior:contain}
+.admin-workspace>.post-editor{min-width:0}
+.game-grid{grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-flow:row}
+.game-card{min-width:0;display:flex;flex-direction:column}
+.game-card p{margin-bottom:20px}
+.game-card>span{position:static;align-self:flex-start;margin-top:auto}
 .game-card:nth-child(4){color:#5a4039;border-color:#e2c7b9;border-radius:26px;background:linear-gradient(145deg,#fff8f0,#f2dcd3);box-shadow:0 18px 45px rgb(102 67 54 / 10%)}
 .game-card:nth-child(4) p{color:#866b61}
 .game-card:nth-child(4)>span{border-color:#ac7868}
@@ -222,4 +228,5 @@ body{background:radial-gradient(circle at 10% 8%,#ffe4df 0,transparent 23%),radi
 .holo-card-picker a:focus-visible{outline:2px solid #a96250;outline-offset:3px}
 .holo-game-frame{display:block;width:100%;height:820px;border:1px solid #e4cabe;border-radius:24px;background:#fff9f4;box-shadow:0 20px 50px rgb(102 67 54 / 13%)}
 @media(max-width:1100px){.game-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:960px){.admin-workspace>.admin-list{max-height:60dvh;margin-top:15px}}
 @media(max-width:760px){.game-grid{grid-template-columns:1fr}.holo-card-picker{gap:6px}.holo-card-picker a{padding:10px 8px}.holo-card-picker a b{font-size:14px}.holo-card-picker a span{font-size:12px}.holo-game-frame{height:1040px;border-radius:18px}}
