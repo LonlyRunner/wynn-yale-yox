@@ -10,6 +10,7 @@ import { api, ApiError, randomUUID } from './api'
 import Guestbook from './Guestbook.vue'
 import AdminOperations from './AdminOperations.vue'
 import JournalPhotos, { type JournalImage } from './JournalPhotos.vue'
+import CoupleChess from './CoupleChess.vue'
 import { siteServices, refreshSiteServices } from './siteServices'
 
 type Lang = 'zh' | 'en'
@@ -458,6 +459,7 @@ const games=[
   {id:'memory',no:'02',icon:'⌘',zh:'代码记忆',en:'Code Match',dzh:'翻开技术图标，找出配对。',den:'Flip tech icons and find every pair.'},
   {id:'stack',no:'03',icon:'▦',zh:'技术栈 2048',en:'Stack 2048',dzh:'合并技术栈，抵达 2048。',den:'Merge the stack and reach 2048.'},
   {id:'holo',no:'04',icon:'🃏',zh:'全息卡收藏',en:'Holo Card Studio',dzh:'旋转、翻面并调节彩箔与景深，收藏一张会发光的卡片。',den:'Rotate and flip a glowing card, then tune its foil and depth.'},
+  {id:'couple',no:'05',icon:'♥',zh:'双人飞行棋',en:'Couple Path',dzh:'掷骰走棋、抽卡、翻格和双骰。任务只保留对视、拥抱和真心话。',den:'Roll, draw, flip, or shake two dice. Tasks stay with glances, hugs, and small questions.'},
 ]
 const holoCards=[
   {id:'001',zh:'蓝紫流光',en:'Blue-violet glow'},
@@ -592,11 +594,12 @@ watch(()=>route.fullPath,()=>{mobileOpen.value=false;notice.value='';soundOn.val
 
   <section v-else-if="route.name==='about'" class="about"><div class="portrait profile-portrait"><img src="/media/profile-avatar.webp" :alt="profile.displayName"><span>{{profile.displayName}}</span></div><div class="about-copy"><small>ABOUT {{profile.realName.toUpperCase()}}</small><img class="signature" src="/media/wynn-signature.webp"><h1>{{text('在代码与生活之间，保留自由生长的空间。','Keep room to grow between code and life.')}}</h1><p>{{text(profile.bioZh,profile.bioEn)}}</p><dl><div><dt>{{text('城市','City')}}</dt><dd>{{text(profile.cityZh,profile.cityEn)}}</dd></div><div><dt>{{text('邮箱','Email')}}</dt><dd><a :href="`mailto:${profile.email}`">{{profile.email}}</a></dd></div><div><dt>{{text('代码','Code')}}</dt><dd><a :href="profile.github" target="_blank">GitHub ↗</a> · <a :href="profile.gitee" target="_blank">Gitee ↗</a></dd></div><div><dt>{{text('闲鱼','Xianyu')}}</dt><dd><a :href="profile.xianyu" target="_blank">Lonely__Runner ↗</a></dd></div><div><dt>{{text('微信','WeChat')}}</dt><dd>{{profile.wechat}}</dd></div><div><dt>QQ</dt><dd>3069226178</dd></div></dl><button :class="['cat about-cat',{dragging:catDragging}]" :style="catStyle" :aria-label="text('拖动小猫','Drag kitten')" @pointerdown="startCatDrag" @pointermove="moveCat" @pointerup="endCatDrag" @pointercancel="endCatDrag" @click="catClick"><img src="/media/fluffy-kitten.webp" draggable="false"></button></div></section>
 
-  <template v-else-if="route.name==='games'"><section class="page-head"><small>SMALL WORLDS</small><h1>{{text('玩一会儿','Play for a while')}}</h1><p>{{text('四个互动小游戏，随时开始，也随时离开。','Four interactive games. Start and leave whenever you like.')}}</p></section><section class="game-grid"><RouterLink v-for="game in games" :key="game.id" :to="`/games/${game.id}`" class="game-card"><b>{{game.no}}</b><strong>{{game.icon}}</strong><small>{{game.id}}</small><h2>{{text(game.zh,game.en)}}</h2><p>{{text(game.dzh,game.den)}}</p><span>{{text('开始游戏','Play')}} →</span></RouterLink></section></template>
+  <template v-else-if="route.name==='games'"><section class="page-head"><small>SMALL WORLDS</small><h1>{{text('玩一会儿','Play for a while')}}</h1><p>{{text('五个小游戏，随时开始，也随时离开。','Five little games. Start and leave whenever you like.')}}</p></section><section class="game-grid"><RouterLink v-for="game in games" :key="game.id" :to="`/games/${game.id}`" class="game-card"><b>{{game.no}}</b><strong>{{game.icon}}</strong><small>{{game.id}}</small><h2>{{text(game.zh,game.en)}}</h2><p>{{text(game.dzh,game.den)}}</p><span>{{text('开始游戏','Play')}} →</span></RouterLink></section></template>
 
   <section v-else-if="route.name==='game'" class="game-page">
-    <div class="game-title"><RouterLink class="game-back" to="/games">← {{text('返回游戏列表','Back to games')}}</RouterLink><b>{{text(games.find(g=>g.id===gameId)?.zh||'',games.find(g=>g.id===gameId)?.en||'')}}</b><span v-if="gameId!=='holo'">{{gameId==='memory'?`LEVEL ${memoryLevel} · `:''}}SCORE {{score}}</span></div>
-    <div :class="['game-shell',{'holo-game-shell':gameId==='holo'}]">
+    <div class="game-title"><RouterLink class="game-back" to="/games">← {{text('返回游戏列表','Back to games')}}</RouterLink><b>{{text(games.find(g=>g.id===gameId)?.zh||'',games.find(g=>g.id===gameId)?.en||'')}}</b><span v-if="gameId!=='holo'&&gameId!=='couple'">{{gameId==='memory'?`LEVEL ${memoryLevel} · `:''}}SCORE {{score}}</span></div>
+    <CoupleChess v-if="gameId==='couple'" @back="router.push('/games')" />
+    <div v-else :class="['game-shell',{'holo-game-shell':gameId==='holo'}]">
       <div v-if="gameId==='pelican'" class="pelican-panel">
         <div class="model-switcher"><span>{{text('选择画风模型','Choose art model')}}</span><button v-for="model in pelicanModels" :key="model.id" :class="{active:pelicanModel===model.id}" :disabled="pelicanDrawBusy" @click="selectPelicanModel(model)">{{model.name}}</button></div>
         <p v-if="pelicanDrawError" class="pelican-draw-error">{{pelicanDrawError}}</p>
