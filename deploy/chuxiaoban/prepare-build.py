@@ -1,5 +1,5 @@
 from pathlib import Path
-import sys, zipfile, json
+import sys, zipfile, json, shutil
 root = Path(sys.argv[1]).resolve()
 archive = Path(sys.argv[2]).resolve()
 with zipfile.ZipFile(archive) as z:
@@ -15,4 +15,6 @@ manifest.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="ut
 vite = web / "vite.config.ts"
 s = vite.read_text(encoding="utf-8").replace("plugins: [uni()]", "base: '/chuxiaoban/', plugins: [uni()]")
 vite.write_text(s, encoding="utf-8")
+# uni-app copies src/static; this project keeps its original assets at static/.
+shutil.copytree(web / "static", web / "src/static", dirs_exist_ok=True)
 print("Prepared deployment copy; original project files unchanged")
