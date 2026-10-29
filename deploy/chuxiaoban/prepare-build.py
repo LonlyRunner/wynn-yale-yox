@@ -17,6 +17,10 @@ s = vite.read_text(encoding="utf-8").replace("plugins: [uni()]", "base: '/chuxia
 vite.write_text(s, encoding="utf-8")
 # uni-app copies src/static; this project keeps its original assets at static/.
 shutil.copytree(web / "static", web / "src/static", dirs_exist_ok=True)
+# Dynamic CSS URLs are not rewritten by Vite's static import transform.
+order_page = web / "src/pages/order/index.vue"
+order_page.write_text(order_page.read_text(encoding="utf-8").replace("url(/static/", "url(/chuxiaoban/static/"), encoding="utf-8")
+
 # Serialize guest initialization before protected page requests (including direct hash links).
 http = web / "src/api/http.ts"
 s = http.read_text(encoding="utf-8")

@@ -3,6 +3,7 @@ import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import assert from 'node:assert/strict';
 const web = resolve(process.argv[2]);
+assert.ok(!(await readFile(resolve(web, 'src/pages/order/index.vue'), 'utf8')).includes('url(/static/'), 'dynamic dish art must use the application prefix');
 const require = createRequire(resolve(web, 'package.json'));
 const ts = require('typescript');
 let source = await readFile(resolve(web, 'src/api/http.ts'), 'utf8');
