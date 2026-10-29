@@ -1,0 +1,784 @@
+{
+  "snapshotDate": "2026-10-29",
+  "fileCount": 155,
+  "archive": "chuxiaoban-project-2026-10-29.zip",
+  "archiveBytes": 11245281,
+  "sha256": "a72141f9ea4f521378482b67aa4c542b0bf4358d6e398c987ca71ce07da19ea9",
+  "files": [
+    {
+      "path": ".env.example",
+      "bytes": 542,
+      "sha256": "20c15e2105f251bf00e99f207ec0688d93e868926d1ac945e7280aa98d98421b"
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "bytes": 1066,
+      "sha256": "86d586ba135c7ac062a875051d0920f8ae35d961f4e7a07167d2129744f6141b"
+    },
+    {
+      "path": ".gitignore",
+      "bytes": 74,
+      "sha256": "54dbca3b6e40abbfe640da0278ce11673a665805ff33c1f69816ffbefbc17478"
+    },
+    {
+      "path": "api/openapi.yaml",
+      "bytes": 25302,
+      "sha256": "cc22235b74f775938ff5b6bcbb8aa89bfc0a23c0ba1f7b636bbaad825cfc1275"
+    },
+    {
+      "path": "apps/server/pom.xml",
+      "bytes": 2678,
+      "sha256": "de77026e487e99fc9297eaa1bd76d4b494bc225d49b3418c66f142d7794e646b"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/account/AccountController.java",
+      "bytes": 2797,
+      "sha256": "29e79fe47fddc00029cf7cb3e4b5566b85634f020123a4dd5f24dcb268218f8c"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/account/AccountService.java",
+      "bytes": 7616,
+      "sha256": "ee01a593e0826d26e749e543a73785009c1d64c27a930a6a17ce0dc7128243ea"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/ai/AiRecipeClient.java",
+      "bytes": 354,
+      "sha256": "85949c34afafeb3fa64f6e42b091bee4c0978420cee68eaa8a2707418df76708"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/ai/AiRecognitionClient.java",
+      "bytes": 359,
+      "sha256": "4ff65908378493f43a7f86ec84544a2a388586fe5b07c5f69053c5b8fcdc3233"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/ai/AiRecommendationClient.java",
+      "bytes": 688,
+      "sha256": "079dabb19b337ac62f650050b34d4b2ef70084cd5016110beb764685e72e4ee8"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/ai/AiSchemaValidator.java",
+      "bytes": 4798,
+      "sha256": "b887f9fe56306e45b1918c94b444d62aa9e996edfc2b98cdaa41ebf32f580d8e"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/ai/MockAiRecipeClient.java",
+      "bytes": 1051,
+      "sha256": "4e081cd53f5fffdaf5fa6336ac0baee7761d8827329e614b816f9ca2d709670c"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/ai/MockAiRecognitionClient.java",
+      "bytes": 907,
+      "sha256": "f23e5daf7f4d8a157761895efee4d298dcd136c10bed20836a354ff31881d416"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/ai/MockAiRecommendationClient.java",
+      "bytes": 1414,
+      "sha256": "f6b8fe9a4ec34aad3e2899431d4e6c3f795cf5c61322fe06c3f62c03b149eb6f"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/ai/OpenAiCompatibleClient.java",
+      "bytes": 4158,
+      "sha256": "f2cf13121530c371dba865bf026b7dc30c70b51ef497bfbb6b566cf4c95ad659"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/ai/package-info.java",
+      "bytes": 92,
+      "sha256": "dff93090e96e2867c6aaaf0bf4a230f6e9aaa00da27b32c7e798e2277f9bd954"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/ai/QwenRecipeClient.java",
+      "bytes": 3996,
+      "sha256": "fb9e34e4a298a0486b034aa5218ffbb2fff4f522971f231327a895d643f794c5"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/ai/QwenRecognitionClient.java",
+      "bytes": 3229,
+      "sha256": "2dc072980771d3533c1ec4fd213d2f1db588941a3faa71a9b9daa7024fc719d9"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/ai/QwenRecommendationClient.java",
+      "bytes": 4792,
+      "sha256": "bf94f72a93b9ab3ff507001bc094fefc32868d92ca36109637b0808b3a7c37ef"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/chat/KitchenChatController.java",
+      "bytes": 1113,
+      "sha256": "4be781b9974af6e693dcfd1ce3d6711c1b270e08e84da7c2069947e36f1d66fd"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/chat/KitchenChatService.java",
+      "bytes": 2843,
+      "sha256": "15eca72fbe33b2f36e5e8e63f78b1adf4674b2b5c682fee243dd84719061592f"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/ChuxiaobanApplication.java",
+      "bytes": 324,
+      "sha256": "2fb0fee69813f5556dd0355d4c84e64ff94f2286dd4d91a1ab6ad6d56e427802"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/common/api/ApiResponse.java",
+      "bytes": 348,
+      "sha256": "6e2d2b718c5ff80a5dbe163d9fa2e834839b8090426955d1d7b38a2b1c8d104e"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/common/api/ErrorCode.java",
+      "bytes": 241,
+      "sha256": "85a71f0356017ab7ab479fd3a9a0c60e68dca81aa7f77f66390f48719842f24d"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/common/config/CorsConfig.java",
+      "bytes": 1720,
+      "sha256": "32d080b67b02e09db372f462e87bea2bdf91a519dbb16790f96d7532bfe20b01"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/common/config/OpenApiConfig.java",
+      "bytes": 424,
+      "sha256": "ca8c4d1aaf99b6173115a86f9e98fb5fbb9eda394ce75a18aca4d1f5ccb5a676"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/common/exception/BusinessException.java",
+      "bytes": 525,
+      "sha256": "b5c13d67e82f41ad2f59ce88124c3948aff1943e490ef2fc771b1e90df4001c8"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/common/web/GlobalExceptionHandler.java",
+      "bytes": 2032,
+      "sha256": "9678bde9bc829b8eb933fca345dd25825112f29e799261d82ca75791ea0325b0"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/common/web/RequestGuardFilter.java",
+      "bytes": 3241,
+      "sha256": "8582a519fe51a737515607832f197d12529746440773e3c5c232a7222cb69380"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/common/web/RequestIdFilter.java",
+      "bytes": 1176,
+      "sha256": "1d1a9117ad0e5b0fb0ad0bddf5dbe60fbbce42954aa07ca862d02fe770995ad4"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/common/web/RootController.java",
+      "bytes": 560,
+      "sha256": "8dc811d15bd52c60697810cca0257f766b910902e584f9de985d3d860efdc976"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/dish/DishRecipeController.java",
+      "bytes": 845,
+      "sha256": "dee98489ddaccd463fb91a44c310cdacfc339749a8d907ecb772d2ef6da84a52"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/dish/DishRecipeService.java",
+      "bytes": 1854,
+      "sha256": "639fb962682ce3e8ae85bd9ea904af3be0452260c2247c929687c0198d5ba41f"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/dish/package-info.java",
+      "bytes": 74,
+      "sha256": "9eb2955fd39a289196c4ca13169abe8977994665ee85849b69c109d7987b12b5"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/knowledge/CookingFeedbackController.java",
+      "bytes": 2444,
+      "sha256": "541dcc0cdf79e7dd56001d37c0da73bcfbe32fe368a701cab214172d8c2ba436"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/knowledge/CookingFeedbackService.java",
+      "bytes": 3281,
+      "sha256": "13a80bf2766a579d8c3ef0cadd3acdcaea58585124178ead05f08aa743164d8b"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/knowledge/KnowledgeSemanticController.java",
+      "bytes": 3163,
+      "sha256": "739096609c1760e13636f7538642ae3a3816763cec5e14c68daa47279431e719"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/knowledge/KnowledgeSemanticService.java",
+      "bytes": 8975,
+      "sha256": "19a7c88cc8cb08d6f5584790daed2175de9f7d51e3e3c35512a3344f9f8903b3"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/knowledge/package-info.java",
+      "bytes": 77,
+      "sha256": "fb344795818f4cd13adf7398a0dd832621b564f568ef8fae315e3cada3844149"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/knowledge/RecentCookingController.java",
+      "bytes": 914,
+      "sha256": "947a9df64ddb4b735aff75ea5abe0bd439fbf35b539c35b698681bfa04dbc006"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/knowledge/RecentCookingService.java",
+      "bytes": 1788,
+      "sha256": "13b051392295bc5d6ffdf1afc64c162099537af7e74ee6bf27cb6d7db6280497"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/notification/NotificationController.java",
+      "bytes": 1265,
+      "sha256": "4c2152d9895cabdc65deca07e3e4f5df6220203511b2c202f649309559a6f99d"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/notification/NotificationService.java",
+      "bytes": 2350,
+      "sha256": "e033169fb241e7a4653a226813d887c65d88930cec21d20ff299278f2e1de62f"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/nutrition/NutritionController.java",
+      "bytes": 1076,
+      "sha256": "80b5e9b952893275bc3f9276e1db24e8b6fdf151da9ddd410492f5e4c405a5de"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/nutrition/NutritionService.java",
+      "bytes": 963,
+      "sha256": "c19969f574649233bb31effb13ed8bb6135c328d0ecf923466026549707b4b07"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/nutrition/PriceService.java",
+      "bytes": 781,
+      "sha256": "1d364d79a1c404a28e9fc8c6d2b0ae3ef79fd32041d5e38fc7866b9e4b1bcdad"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/ordering/HouseholdController.java",
+      "bytes": 9823,
+      "sha256": "15e8bad29fffcb453f4bbe149a7ff4a566a4c67106af0cf93c4f6344137389a8"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/oss/MinioObjectStorage.java",
+      "bytes": 1996,
+      "sha256": "f9e4c3c1a416b80d9add5355aaa7d8ed45f0148b218900687a56d9d04460c1f2"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/oss/ObjectStorage.java",
+      "bytes": 318,
+      "sha256": "5626ab7e218d06e314f44e321cc8559cb38c1e408ea926ab9c6b3d3c577357b7"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/planning/PlanningController.java",
+      "bytes": 5992,
+      "sha256": "e1be191a3af391671717631486c082d293a433875bbaeb6ea62bac3325564e09"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/planning/PlanningService.java",
+      "bytes": 14929,
+      "sha256": "3ad3da73357fa84ca9c7cebb215c32981928e8f7c88f2a353aa89155e53c53d0"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/recognition/AllergenRuleService.java",
+      "bytes": 1373,
+      "sha256": "9e37adeca1808a707edb147fc16693455a35153a9d1fce6f79c72912e6412fae"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/recognition/IngredientConfirmationController.java",
+      "bytes": 1689,
+      "sha256": "394895108159af6ad771c8c5f3cab554e81b8f671c17c928ec6fd6732f1f4b65"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/recognition/IngredientConfirmationService.java",
+      "bytes": 4154,
+      "sha256": "f44decfe2f5629f2dc97aeae889b657957b130e5bc82969563b052d400b0680b"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/recognition/package-info.java",
+      "bytes": 89,
+      "sha256": "0993b47c7145eae9402c3eba6ddd4d2be90ccb38d8d936ca879a279dd39be64f"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/recognition/RecognitionController.java",
+      "bytes": 1501,
+      "sha256": "abadc7c66bcf7e9fd86d985e50d911b3f777525b015cffa252692c28c2bb04f3"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/recognition/RecognitionService.java",
+      "bytes": 8054,
+      "sha256": "15a6c346f2f968eceb1cb84fe18a564e97c0308496fd9d6c7fff2cb62ac56fe0"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/recommendation/package-info.java",
+      "bytes": 76,
+      "sha256": "744301ac5bba966c05a001109dc788175bf805d7722173ee8c89869baa5a5410"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/recommendation/RecommendationController.java",
+      "bytes": 2474,
+      "sha256": "c9a9df1e497a64d236aeb71fdabc28f02aa5a20c24ac17980971c725488612c9"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/recommendation/RecommendationService.java",
+      "bytes": 12032,
+      "sha256": "927980b2466d23c3cf8e6a13bf462a226989b7fe4104e9dd68653d2b44fc1cf4"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/sync/GuestAuthenticationFilter.java",
+      "bytes": 2832,
+      "sha256": "05337c6ce40959c1fdaf6b120dd02495b2d9192355792134301a87481f86fd53"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/sync/GuestIdentityController.java",
+      "bytes": 2028,
+      "sha256": "46df58c64b3bc8ac8c4805900264f4faa3d68de895b4186ebfb6e543c93908b7"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/sync/GuestIdentityService.java",
+      "bytes": 3243,
+      "sha256": "8ddec2c28ca8fc87f3927051ca0405c834632463d7c5fbc241b6ea4423a3e5e4"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/sync/GuestTokenService.java",
+      "bytes": 3498,
+      "sha256": "907a85e04ade9d1329b0a45781e96c36b28435194cd7554137eba729d20c9d6e"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/sync/package-info.java",
+      "bytes": 88,
+      "sha256": "7237a59fdc6878fd2c9e54e37529638c5f2ea1bbe67aa483829a210f48762168"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/sync/SyncCodeController.java",
+      "bytes": 3490,
+      "sha256": "91d60a0a2519b62d8a8dcec1e2b0622443de0239ffa3b8ca0f36611114039bfd"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/sync/SyncCodeService.java",
+      "bytes": 4991,
+      "sha256": "19a1df72f1bed9de84abb972e052f89851080f47b0bf1a9645092c208f408854"
+    },
+    {
+      "path": "apps/server/src/main/java/cn/chuxiaoban/sync/SyncDataService.java",
+      "bytes": 7622,
+      "sha256": "896238b86fc54818b3dc3661c752f93b9c5867d8b3c6fb520f6f4465c8b2115e"
+    },
+    {
+      "path": "apps/server/src/main/resources/application.yml",
+      "bytes": 1694,
+      "sha256": "024e34f9a009d183223a80d993f932fff244b968d2ae18e56610509726fb21bd"
+    },
+    {
+      "path": "apps/server/src/main/resources/db/migration/V10__dish_category.sql",
+      "bytes": 411,
+      "sha256": "a42b86a572d26a66d2d803d4eaeb149b83d253fef89270549f7b7b73c2bf38ec"
+    },
+    {
+      "path": "apps/server/src/main/resources/db/migration/V11__demo_dish_catalog.sql",
+      "bytes": 2202,
+      "sha256": "be2097fda6b1f33b356590480f733c35de6a355f628d8d2839d6e5532e96e027"
+    },
+    {
+      "path": "apps/server/src/main/resources/db/migration/V12__household_dish_recipe.sql",
+      "bytes": 194,
+      "sha256": "d9b8604373d57b703bc3ea7856aafe7197e85136eeaf91c54fdb20dbb572bef4"
+    },
+    {
+      "path": "apps/server/src/main/resources/db/migration/V1__create_mvp_tables.sql",
+      "bytes": 4791,
+      "sha256": "ee48b0f4e1d0c5f9fa686e96b9c0675f442aa2c75124b0f36aaef0abcf8276e6"
+    },
+    {
+      "path": "apps/server/src/main/resources/db/migration/V2__add_v13_planning_tables.sql",
+      "bytes": 2411,
+      "sha256": "36c4b8c18c21e90b17c78fb1c5107ce33d979a376df48c7baea33effa2e066a8"
+    },
+    {
+      "path": "apps/server/src/main/resources/db/migration/V3__add_knowledge_vector_video_tables.sql",
+      "bytes": 1909,
+      "sha256": "4b97b22f98c4a8f583808280a759f53203db1741b7f56b2d5efdb879133bdb6d"
+    },
+    {
+      "path": "apps/server/src/main/resources/db/migration/V4__add_account_foundation.sql",
+      "bytes": 614,
+      "sha256": "3cc00aa325463291044aed4aa8ebde5d3b8f368acaf0a6a51068e0bcd88bef7a"
+    },
+    {
+      "path": "apps/server/src/main/resources/db/migration/V5__add_notifications.sql",
+      "bytes": 459,
+      "sha256": "5a1a54745b187c015ca2c94c3a1f8273c7ad08d5b4c9b571dc047d8d3646c65d"
+    },
+    {
+      "path": "apps/server/src/main/resources/db/migration/V6__expand_account_and_planning_data.sql",
+      "bytes": 1257,
+      "sha256": "e93e8d51f381991074e47a1bed808fff0b5a419848e1afa34dd95e70f5e8a438"
+    },
+    {
+      "path": "apps/server/src/main/resources/db/migration/V7__expand_feedback_knowledge.sql",
+      "bytes": 267,
+      "sha256": "108c4744226912bec1458deba71c2c4de5e47acc1566c4f31bbc275da368bc83"
+    },
+    {
+      "path": "apps/server/src/main/resources/db/migration/V8__household_orders.sql",
+      "bytes": 743,
+      "sha256": "eee6fe62927c9069f597e34963d4c1bf7fef7da5064d9e0d02cbaec100ea7f49"
+    },
+    {
+      "path": "apps/server/src/main/resources/db/migration/V9__order_item_note.sql",
+      "bytes": 64,
+      "sha256": "52a970be7657e820e6765da823e28d0bead58ab422793b8f9639ec6e85615b2a"
+    },
+    {
+      "path": "apps/server/src/test/java/cn/chuxiaoban/ai/AiSchemaValidatorTest.java",
+      "bytes": 3292,
+      "sha256": "ff0008b0d9a62bfab161ef907efc1462d28efb97a795178ecde913ba475ff036"
+    },
+    {
+      "path": "apps/server/src/test/java/cn/chuxiaoban/common/web/GlobalExceptionHandlerTest.java",
+      "bytes": 1695,
+      "sha256": "30d1a5a9ec83712cb77d04f166b2fdd9c7d8edd68631113637da724db1d78071"
+    },
+    {
+      "path": "apps/web-mini/index.html",
+      "bytes": 72,
+      "sha256": "810ae6af08fb56eeb17dc111a4601c41293ec9cb8e968b4d1fa177d6c269c46d"
+    },
+    {
+      "path": "apps/web-mini/package-lock.json",
+      "bytes": 527729,
+      "sha256": "277b546287acef70a5c154d3413c358aad4a37a0a9d470e07b50162bec55fc44"
+    },
+    {
+      "path": "apps/web-mini/package.json",
+      "bytes": 1005,
+      "sha256": "4175d5d1ee687361ad2e7e1a7bfb5bf19ebd1e73bf14210d2bd15717df29d241"
+    },
+    {
+      "path": "apps/web-mini/src/api/http.ts",
+      "bytes": 2898,
+      "sha256": "e1a52a540f86cf3415166d507cf7698e0c836dd41ded2a197c7c8374666805eb"
+    },
+    {
+      "path": "apps/web-mini/src/App.vue",
+      "bytes": 566,
+      "sha256": "08826f6f89984cbff4f66873d11485fbd180f333198d85eb051ca2846b4354d7"
+    },
+    {
+      "path": "apps/web-mini/src/components/CxbAvatar.vue",
+      "bytes": 344,
+      "sha256": "eb9aff1f9d262ee16d7db2e4d1606068fb9f3fe010f9d6b420ce10fc42be4603"
+    },
+    {
+      "path": "apps/web-mini/src/components/CxbButton.vue",
+      "bytes": 567,
+      "sha256": "13225d9e4f51836a4784849e48b8d4e95ccc1b994d5d48716640022183e33a04"
+    },
+    {
+      "path": "apps/web-mini/src/components/CxbCard.vue",
+      "bytes": 206,
+      "sha256": "560f50a4281eb17614ea3ac0186c8f3c6ad7585a05fc3691a0a81c5896a56922"
+    },
+    {
+      "path": "apps/web-mini/src/components/CxbEmptyState.vue",
+      "bytes": 585,
+      "sha256": "d91b3edf82e4756d406243de54c14ecf900bf73577952682b60d9f21a99a60d6"
+    },
+    {
+      "path": "apps/web-mini/src/components/CxbIngredientItem.vue",
+      "bytes": 807,
+      "sha256": "2e54c2b3e107a0df3f808037d182648392a0846656ab477e677d16eb4054ca34"
+    },
+    {
+      "path": "apps/web-mini/src/components/CxbLoading.vue",
+      "bytes": 370,
+      "sha256": "f2b6450dfa132cf7dac649ee8e46519e8b83369525c76822cd3afce0b175782b"
+    },
+    {
+      "path": "apps/web-mini/src/components/CxbStepCard.vue",
+      "bytes": 933,
+      "sha256": "c6ba0f990073ea6997683a239eccf18a2ef50361f3ac3943dab6660407893746"
+    },
+    {
+      "path": "apps/web-mini/src/components/CxbTag.vue",
+      "bytes": 443,
+      "sha256": "48e6d76ca75e592209102fdf734b29ea5ad91527f441ae37f3f5d5f0332377c5"
+    },
+    {
+      "path": "apps/web-mini/src/components/CxbToast.vue",
+      "bytes": 345,
+      "sha256": "fefd4949449c4ae8da7bf5a25f0bc233847f1ab222323a1fd98009bff1b45629"
+    },
+    {
+      "path": "apps/web-mini/src/components/CxbVideoCard.vue",
+      "bytes": 714,
+      "sha256": "5d71589552ebf48fa4e0cd1cbf76b12d8a54e2da082cc4da3134587f732c52d5"
+    },
+    {
+      "path": "apps/web-mini/src/env.d.ts",
+      "bytes": 297,
+      "sha256": "9d064869b2598eecc42164859f67e0ce3434e895bfeabd6263c3acfd6b4bc15d"
+    },
+    {
+      "path": "apps/web-mini/src/main.ts",
+      "bytes": 262,
+      "sha256": "4711d242ad351c29e4c0ea6851f0b93f4ae587a98229e161875ddb077cc16abe"
+    },
+    {
+      "path": "apps/web-mini/src/manifest.json",
+      "bytes": 349,
+      "sha256": "232fe77aaea58fcd1e4b9dcb4070815f28e83c650dc881c0988444381de9e58e"
+    },
+    {
+      "path": "apps/web-mini/src/pages/cooking-plan/index.vue",
+      "bytes": 4028,
+      "sha256": "d9823cb1421977041924fc6336ad78d5456bdc128ca620cc4b5dfd7d3a0c45e9"
+    },
+    {
+      "path": "apps/web-mini/src/pages/family-menu/index.vue",
+      "bytes": 5622,
+      "sha256": "6b7cb3ddf14704adf5c344df93444ca721a4ed680f12d61fb7254ce0dcdfe8c4"
+    },
+    {
+      "path": "apps/web-mini/src/pages/feedback/index.vue",
+      "bytes": 3228,
+      "sha256": "16725a6b3418a01c00c0a32e21151927827caa208862b30f9713413ff54bd077"
+    },
+    {
+      "path": "apps/web-mini/src/pages/home/index.vue",
+      "bytes": 4894,
+      "sha256": "d1c114a2e910c29215a17fe0d5fbcdf1ecba351d9f6cf367fb198cbc8689c881"
+    },
+    {
+      "path": "apps/web-mini/src/pages/household-admin/index.vue",
+      "bytes": 6811,
+      "sha256": "391a8ffd63721a1d86464c800a9add9cb0b3032f311d041f2a8f6a3de979750b"
+    },
+    {
+      "path": "apps/web-mini/src/pages/knowledge/index.vue",
+      "bytes": 8548,
+      "sha256": "9cab30f1cf7bffa19bd84ac5b99d338c907d7b3609f4d382ba4dc4736ccd49aa"
+    },
+    {
+      "path": "apps/web-mini/src/pages/login/index.vue",
+      "bytes": 4168,
+      "sha256": "6d5cd2c88ba0c592f7826de17b33e8920b76f8bc2ba5c9050e66f1e40b01a608"
+    },
+    {
+      "path": "apps/web-mini/src/pages/notifications/index.vue",
+      "bytes": 2118,
+      "sha256": "3c08bbfff02eb3c411ccc643305538b4c9da6410a33ce6bd2ff276e1e7c497d9"
+    },
+    {
+      "path": "apps/web-mini/src/pages/order/index.vue",
+      "bytes": 12628,
+      "sha256": "bab5eb0e9ce70beb6ebfde9ef826a628e06c97fe9d67004df5b36cc16aa7e585"
+    },
+    {
+      "path": "apps/web-mini/src/pages/recipe/steps.vue",
+      "bytes": 10299,
+      "sha256": "675a21684568268e7314d9d54f706276208f2982dddbb605ffdf417f21f042b9"
+    },
+    {
+      "path": "apps/web-mini/src/pages/recognition/index.vue",
+      "bytes": 15292,
+      "sha256": "f3d61e26832f9dac52b75b86562e68a4e966a94e851c8d45f3a4a09a469bd96a"
+    },
+    {
+      "path": "apps/web-mini/src/pages/recommendation/index.vue",
+      "bytes": 5048,
+      "sha256": "b914e3afd5e5f9be1c69fd40389a72d851442472618b6e9d0187bb4f7c8e8074"
+    },
+    {
+      "path": "apps/web-mini/src/pages/settings/index.vue",
+      "bytes": 3362,
+      "sha256": "94d7bbb1074603a3e8bac20ce15786b636a083e0aaa23a7c2693824a3309611c"
+    },
+    {
+      "path": "apps/web-mini/src/pages/shopping/index.vue",
+      "bytes": 4492,
+      "sha256": "1836009d46a6d0e36421edfd9d6b1292656704767e5bf71677bb70a5d4beaea8"
+    },
+    {
+      "path": "apps/web-mini/src/pages/sync/index.vue",
+      "bytes": 8422,
+      "sha256": "7adcf09c54d9d5a0fc6d5e6ad939dcd22e6701318265c2562f66169a4f2467db"
+    },
+    {
+      "path": "apps/web-mini/src/pages/video/index.vue",
+      "bytes": 3830,
+      "sha256": "4a2721af8965b0cd817a1a02844c000a4e3411f0a3835741b902c52def8eb366"
+    },
+    {
+      "path": "apps/web-mini/src/pages.json",
+      "bytes": 3177,
+      "sha256": "40a6c84dc80c515cf5e51f4f27518eb10589afcd804599f41d56ce42dc4b2e95"
+    },
+    {
+      "path": "apps/web-mini/src/stores/guest.ts",
+      "bytes": 1902,
+      "sha256": "bbbfe2fd5435b19864c3820f7469ea150596673e27d26ae2f6e42eae7b1c82d0"
+    },
+    {
+      "path": "apps/web-mini/src/stores/sync.ts",
+      "bytes": 2730,
+      "sha256": "b45b13d326c2660c03aef67ace96ee21de0f4ed2c388ddbce6f9d041d40ab054"
+    },
+    {
+      "path": "apps/web-mini/src/uni.scss",
+      "bytes": 103,
+      "sha256": "8a58f24b4a7f94033084fabef3b709dfde1cad12da1feaf3b1a5a0017b8b9edd"
+    },
+    {
+      "path": "apps/web-mini/static/icons/camera-active.svg",
+      "bytes": 430,
+      "sha256": "8aec5d8f71ade2c4fa7682d0540d4d43433dac34bcef4603405ae57afaeff356"
+    },
+    {
+      "path": "apps/web-mini/static/icons/camera.svg",
+      "bytes": 430,
+      "sha256": "fc4d0890f5a6749ceae6caf9c75c411f9235e2a56a841a90a576e34c5de6c0b4"
+    },
+    {
+      "path": "apps/web-mini/static/icons/home-active.svg",
+      "bytes": 394,
+      "sha256": "dd09399948e93025c487e33e68d6c68e34f7630b3676416da67824d13e9ca879"
+    },
+    {
+      "path": "apps/web-mini/static/icons/home.svg",
+      "bytes": 394,
+      "sha256": "cbda0527033bae263e5c5e7bd3b1232164f6939411e347a603404820087a41e5"
+    },
+    {
+      "path": "apps/web-mini/static/icons/knowledge-active.svg",
+      "bytes": 519,
+      "sha256": "cdc2402bfaabac4dd16b8c5eec22a842a216a73a7f933d54c8f5a31359b11e82"
+    },
+    {
+      "path": "apps/web-mini/static/icons/knowledge.svg",
+      "bytes": 519,
+      "sha256": "fa6f548ee52590a3964d33806cb9a6684285e74e4820ebd5fce1bc0a336751f3"
+    },
+    {
+      "path": "apps/web-mini/static/icons/profile-active.svg",
+      "bytes": 359,
+      "sha256": "ccd0ef4e765327402e117be49f80d39de9d67bd398dfd2db2b163b3a1707aa17"
+    },
+    {
+      "path": "apps/web-mini/static/icons/profile.svg",
+      "bytes": 359,
+      "sha256": "6d6116fb8c1221953dfc9341b9a5a24f1259b6556bbd16ea808a1ef69deb58f3"
+    },
+    {
+      "path": "apps/web-mini/static/images/dishes-pixel-2.png",
+      "bytes": 3072680,
+      "sha256": "6f62769d47d756302d79c56788b6048c40b8b14f1b65cdd34fb6d6230a86a070"
+    },
+    {
+      "path": "apps/web-mini/static/images/dishes-pixel-3.png",
+      "bytes": 2630763,
+      "sha256": "696cfbc4765f971970576ab23eb8d9a68022214f1a7a6ff399485b8a1172b76f"
+    },
+    {
+      "path": "apps/web-mini/static/images/dishes-pixel-4.png",
+      "bytes": 2878912,
+      "sha256": "5c9cf57e6e4f48cd2fac6cb9d6b399edb49ce39381bcb8b34bad2ba527680973"
+    },
+    {
+      "path": "apps/web-mini/static/images/dishes-pixel.png",
+      "bytes": 2574834,
+      "sha256": "9fadbe1d6edbdf042402819ffa67e2699fa385af3f5cb105cd6ef77708fe2010"
+    },
+    {
+      "path": "apps/web-mini/static/logo.svg",
+      "bytes": 554,
+      "sha256": "3b9af64e5611299d810b59877ff52ecd836896bc8dc06796e41399d1b4eac927"
+    },
+    {
+      "path": "apps/web-mini/tsconfig.json",
+      "bytes": 260,
+      "sha256": "aabafafaa5d76ddc1bb0434c0c7d3f1f9b1b6af456698ee77f2ef85811271a78"
+    },
+    {
+      "path": "apps/web-mini/vite.config.ts",
+      "bytes": 131,
+      "sha256": "6bb5f5347d3b3ddc152fdb8d3fb8f2973530716344970e2a662b14fe14068441"
+    },
+    {
+      "path": "compose.yaml",
+      "bytes": 1080,
+      "sha256": "a57c8f2e1576231af48e5606ff9cc0cbe6f5aebb31b3042bec733a319a110cb4"
+    },
+    {
+      "path": "docs/configuration-checklist.md",
+      "bytes": 1746,
+      "sha256": "5d8a378635907cc97c3c624c15a128da76b795ab3b2221dbbe3d6efdbac7b39e"
+    },
+    {
+      "path": "docs/data-model.md",
+      "bytes": 2485,
+      "sha256": "9c5fad80aee223639fbffe3c06c0a54ce2b3262a1c11cf494b5f468e2a22b2e4"
+    },
+    {
+      "path": "docs/development-conventions.md",
+      "bytes": 1331,
+      "sha256": "01ccef84d66ee37117c7c78b5a69024640c46824fea636f79e42df70ed0a235c"
+    },
+    {
+      "path": "docs/progress.md",
+      "bytes": 8059,
+      "sha256": "32b2866ac2fdb332e48365144a15ed50b6b008519521073778391fd1924908e6"
+    },
+    {
+      "path": "docs/security-privacy.md",
+      "bytes": 2025,
+      "sha256": "660dc829db24c4b886137e8585d8c11f74b7c02f9f174f8747800f86511506f9"
+    },
+    {
+      "path": "docs/technical-baseline.md",
+      "bytes": 1509,
+      "sha256": "97d02b8050807779fe9b8e5357913ca95609109518dd60c8d1bcee213c334ac5"
+    },
+    {
+      "path": "docs/v2-architecture.md",
+      "bytes": 1106,
+      "sha256": "b50abadfeced3f57942089a3ba0f733867f3d2a412d4a26d4a6a75480d30f0d4"
+    },
+    {
+      "path": "README.md",
+      "bytes": 842,
+      "sha256": "1def78aa556839beaba5cee50f937a7b51c9fcfa18d4893280e29cf55badb3cc"
+    },
+    {
+      "path": "schemas/ai/envelope.schema.json",
+      "bytes": 818,
+      "sha256": "b8ff6596ed16b8a7cf9669af18603914737782843400aafd6d8a7a1070530897"
+    },
+    {
+      "path": "schemas/ai/feedback.schema.json",
+      "bytes": 634,
+      "sha256": "607deee89f85ddcc7f67ec88096081eaa93ba8d72227544b7aec73912af567ab"
+    },
+    {
+      "path": "schemas/ai/recipe.schema.json",
+      "bytes": 1139,
+      "sha256": "0da84862f5b9cdeb3805ac3bfabd0f8072a7bf7753f75f98973eb7e7c11a5ac5"
+    },
+    {
+      "path": "schemas/ai/recognition.schema.json",
+      "bytes": 1056,
+      "sha256": "abacb676afc3e87e05a0e5b3b2cedf37fab5203514b5761fd41a07e57797639a"
+    },
+    {
+      "path": "schemas/ai/recommendation.schema.json",
+      "bytes": 1323,
+      "sha256": "1b6ff5bf440c19d441c1dffd0e758bd86e85e94f73f17e9e154b69d1737449ca"
+    },
+    {
+      "path": "scripts/run-server.ps1",
+      "bytes": 504,
+      "sha256": "d8961e10e74fd462c9147de90a222703440caaa969426e25c6d65b9e1a8b4f03"
+    },
+    {
+      "path": "scripts/run-web.ps1",
+      "bytes": 491,
+      "sha256": "f6f1f67c47038697d210ebfdaa2d2106faf993771d896bd848122a45455242b8"
+    },
+    {
+      "path": "scripts/start.ps1",
+      "bytes": 3540,
+      "sha256": "272f5be87bdbe569fa67c009a268ac7e504e769d1489163b2971fdd03308d7ea"
+    },
+    {
+      "path": "厨小伴_MVP开发任务拆分_v1.0.md",
+      "bytes": 12759,
+      "sha256": "b124df1f49d5542e8c2659e36d144eb7786c076760d0fa7d2fea2fd71fc1ded0"
+    },
+    {
+      "path": "启动项目.cmd",
+      "bytes": 109,
+      "sha256": "9b967b12ea74569d9f6f32cebb0d960e22886ba222d85b86377bc99dab6c2a95"
+    }
+  ]
+}
